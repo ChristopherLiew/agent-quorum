@@ -16,27 +16,29 @@ Local coordination for coding-agent sessions that share one working tree. When s
 
 Requires macOS or Linux and Claude Code.
 
-**From source (works today).** Needs Go 1.27 and `jq`.
-
-```bash
-git clone https://github.com/ChristopherLiew/agent-quorum && cd agent-quorum
-make build
-```
-
-Start every session you want coordinated with the plugin and the binary:
-
-```bash
-AGENT_QUORUM_BIN=/path/to/agent-quorum/bin/agent-quorum claude --plugin-dir /path/to/agent-quorum/plugin
-```
-
-**From the marketplace (after the first release).** There is no tagged release yet, so this installs the hooks but has no binary to download.
-
 ```bash
 claude plugin marketplace add ChristopherLiew/agent-quorum#stable
 claude plugin install agent-quorum@agent-quorum-tools
 ```
 
-Use `#latest` instead of `#stable` to get release candidates. Update with `claude plugin update agent-quorum@agent-quorum-tools`.
+That is all. The plugin downloads its binary on the next session start and verifies it against the release checksums.
+
+- **Update:** `claude plugin update agent-quorum@agent-quorum-tools`
+- **Release candidates:** add the marketplace with `#latest` instead of `#stable`.
+- **Terminal CLI** (optional): the binary is installed at `~/.agent-quorum/bin/agent-quorum-<version>`. Symlink it onto your `PATH` as `agent-quorum` to run commands such as `agent-quorum status` from a terminal.
+
+<details>
+<summary>Build from source</summary>
+
+Needs Go 1.27 and `jq`.
+
+```bash
+git clone https://github.com/ChristopherLiew/agent-quorum && cd agent-quorum
+make build
+AGENT_QUORUM_BIN=$PWD/bin/agent-quorum claude --plugin-dir $PWD/plugin
+```
+
+</details>
 
 ## Use
 
@@ -75,13 +77,11 @@ Other commands:
 | `agent-quorum check --staged` | The check that hook runs. Exit 1 if a staged file is held by someone else. |
 | `agent-quorum stop` | Stop the daemon. Claims are kept and reloaded on the next start. |
 
-For the CLI outside a checkout, put `bin/agent-quorum` on your `PATH`.
-
 ## Common debugging
 
 | Symptom | What to do |
 |---|---|
-| Nothing is ever blocked | Run `agent-quorum status`. If it says the daemon is not running after a session has started, no binary was found: check `AGENT_QUORUM_BIN`, or that `~/.agent-quorum/bin/` contains a binary for the plugin version. |
+| Nothing is ever blocked | Run `agent-quorum status`. If it says the daemon is not running after a session has started, no binary was found: check that `~/.agent-quorum/bin/` contains a binary for the plugin version (it is downloaded at session start, so check your network), then start a new session. |
 | A file is stuck as held | `agent-quorum status` to find the session, then `agent-quorum release --session <id> --all`. |
 | A file is still held just after its holder committed it | Expected for 120 seconds (the grace period, see below). Wait, or release it by hand. |
 | Want to see why something was denied | `~/.agent-quorum/daemon.log` records every deny with the session and reason. |
@@ -210,7 +210,7 @@ So a file frees up when the holder exits, crashes, or commits or reverts it. The
 
 ## Roadmap
 
-A first tagged release, a Codex adapter, detection of shell edits that bypassed a claim, notes between sessions over MCP, and a visual pane.
+A Codex adapter, detection of shell edits that bypassed a claim, notes between sessions over MCP, and a visual pane.
 
 ## Contributing
 
