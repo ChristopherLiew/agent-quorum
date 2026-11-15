@@ -201,7 +201,7 @@ Two workflows in `.github/workflows/`.
 |---|---|
 | `test` (Ubuntu and macOS) | `make vet`, `make test` (race detector), `make build` |
 | `lint` | `make lint` (shellcheck, `sh -n`, JSON syntax), and that the launcher fails open when no binary exists |
-| `plugin` | `make validate-plugin`: `claude plugin validate ./plugin --strict` and the marketplace manifest |
+| `plugin` | `make validate-plugin`: validates the Claude plugin and marketplace, then installs the Codex plugin in a temporary Codex home |
 
 **`release.yml`** publishes a release. It runs when a push to `main` changes `plugin/.claude-plugin/plugin.json`, which in practice means when a release pull request is merged. If the version in the manifest has no tag yet, it tags the merge commit and publishes; if the tag already exists it does nothing. Releases are serialised and never cancelled halfway. (Pushing a `v*` tag by hand also triggers it, as a fallback.)
 
