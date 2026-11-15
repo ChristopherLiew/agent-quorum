@@ -1,4 +1,5 @@
 ---
+name: status
 description: Shows which other coding-agent sessions are active on this machine and which files each one holds, and explains what to do about a held file. Use when an edit or a git command was denied by agent-quorum, before starting work that touches many files, before a tree-wide git command (stash, checkout, reset, rebase, add -A, commit -a), or when the user asks who else is working in the repo or why something was blocked.
 ---
 
@@ -7,7 +8,7 @@ description: Shows which other coding-agent sessions are active on this machine 
 Run this and read the result:
 
 ```bash
-"${CLAUDE_PLUGIN_ROOT}/scripts/agent-quorum.sh" status
+"${CLAUDE_PLUGIN_ROOT:-${PLUGIN_ROOT}}/scripts/agent-quorum.sh" status
 ```
 
 ## Reading the output

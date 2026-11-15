@@ -10,6 +10,7 @@ Thanks for helping. This file covers the dev loop, the rules the code lives by, 
 - `shellcheck` (optional locally, enforced in CI)
 - the `claude` CLI, for `make validate-plugin` and for trying the plugin by hand
 - the `codex` CLI, for installing and checking the Codex marketplace package locally
+- the `agy` CLI, for validating the Antigravity plugin (`make validate-antigravity-plugin`)
 - `git`, `curl`, `tar`
 - macOS or Linux
 
@@ -30,6 +31,7 @@ Every make target:
 | `make lint` | `sh -n` and shellcheck on `plugin/scripts/*.sh` and `scripts/*.sh`, and `jq empty` on the marketplace, plugin and hooks JSON. |
 | `make check` | `vet`, `lint`, `test`. |
 | `make validate-plugin` | Validates the Claude plugin and marketplace, then discovers and installs the Codex plugin in a temporary `CODEX_HOME`. Needs the `claude`, `codex` and `jq` CLIs. |
+| `make validate-antigravity-plugin` | Runs `agy plugin validate ./plugin`. Needs the Antigravity CLI (`agy`); Antigravity reports the separate Claude hook config as an expected ignored-file warning. |
 | `make snapshot` | Cross-compiles the four release archives (darwin and linux, amd64 and arm64) and `checksums.txt` into `./dist`. |
 | `make dev` | `make build`, then `AGENT_QUORUM_BIN=$PWD/bin/agent-quorum claude --plugin-dir ./plugin`. |
 | `make release V=1.2.3` | Runs `make check`, then `scripts/bump-version.sh`: creates `release/v1.2.3`, sets the version in `plugin.json`, commits, pushes and opens the release pull request. Merging it publishes the release. |
@@ -60,12 +62,14 @@ internal/core/              State, Session, Claim, decisions and the deny/contex
 internal/guard/             Classify(command) Risk. Pure.
 internal/adapter/claude/    Parse and Render for Claude Code hook JSON. Pure.
 internal/adapter/codex/     Parse and Render for Codex hook JSON. Pure.
+internal/adapter/antigravity/ Parse and Render for Antigravity hook JSON. Pure.
 internal/daemon/            socket server, flock, snapshot, the real core.Env
 internal/client/            dial, start-on-demand, deadlines, path normalisation
 internal/gitx/              thin wrappers over the git CLI
-plugin/                     Claude Code and Codex manifests, hooks, scripts/*.sh, skills/status
+plugin/                     Claude Code, Codex and Antigravity manifests, hooks, scripts/*.sh, skills/status
 scripts/                    release-build.sh, bump-version.sh
 testdata/hooks/claude/      Claude Code hook payload fixtures
+testdata/hooks/antigravity/ Antigravity hook payload fixtures
 .claude-plugin/             marketplace.json: the repo root is a marketplace for Claude Code and Codex
 ```
 
@@ -113,7 +117,7 @@ Do not break these. Review will check each one.
 
 Rules:
 
-- Do not edit the version in either `plugin/.claude-plugin/plugin.json` or `plugin/.codex-plugin/plugin.json` in an ordinary pull request. `make release` updates both manifests together; a version change on `main` publishes a release.
+- Do not edit the version in `plugin/.claude-plugin/plugin.json`, `plugin/.codex-plugin/plugin.json`, or `plugin/.antigravity-plugin/plugin.json` in an ordinary pull request. `make release` updates all three manifests together; a version change on `main` publishes a release.
 - Do not commit to `stable` or `latest`. They are channel branches moved by the release workflow.
 - Do not force-push `main` or rewrite published tags.
 
@@ -180,7 +184,7 @@ A pre-release such as `v0.2.0-rc.1` precedes `v0.2.0` in precedence and means "c
 
 ### Where the version lives
 
-- `plugin/.claude-plugin/plugin.json` `version` is the source of truth and `plugin/.codex-plugin/plugin.json` mirrors it. Only a release pull request, opened by `make release`, edits these fields.
+- `plugin/.claude-plugin/plugin.json` `version` is the source of truth; `plugin/.codex-plugin/plugin.json` and `plugin/.antigravity-plugin/plugin.json` mirror it. Only a release pull request, opened by `make release`, edits these fields.
 - The git tag is `v<version>`, annotated, created by the release workflow on the merge commit. Nobody tags by hand in the normal flow.
 - Binaries are stamped at build time with `-ldflags "-X main.version=<version>"`. `scripts/release-build.sh` stamps the exact version; `make build` stamps `<version>-dev`. An unstamped `go build` reports `dev`.
 - Claude Code users stay on their cached copy of a plugin until the `version` string changes, so a release is a version bump or it is nothing.

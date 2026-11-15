@@ -1,0 +1,12 @@
+{
+  "conversationId": "ag-conv-001",
+  "workspacePaths": ["/home/user/my-project"],
+  "hookEventName": "PreToolUse",
+  "toolCall": {
+    "id": "toolu_05",
+    "name": "view_file",
+    "args": {
+      "AbsolutePath": "/home/user/my-project/internal/auth/token.go"
+    }
+  }
+}

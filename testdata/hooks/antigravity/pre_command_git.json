@@ -1,0 +1,12 @@
+{
+  "conversationId": "ag-conv-001",
+  "hookEventName": "PreToolUse",
+  "toolCall": {
+    "id": "toolu_03",
+    "name": "run_command",
+    "args": {
+      "Cwd": "/home/user/my-project",
+      "CommandLine": "git stash && git pull --rebase"
+    }
+  }
+}

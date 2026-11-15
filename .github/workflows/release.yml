@@ -2,12 +2,14 @@ name: release
 
 # A release is published when a release pull request is merged: the merge
 # changes `version` in plugin.json on main, and this workflow tags that commit
-# and publishes it. Pushing a v* tag by hand still works as a fallback.
+# and publishes it. A manual run can publish the version on main. Pushing a
+# v* tag by hand still works as a fallback.
 on:
   push:
     branches: [main]
     paths: ["plugin/.claude-plugin/plugin.json"]
     tags: ["v*"]
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -19,6 +21,8 @@ concurrency:
 
 jobs:
   release:
+    # Manual release runs must use main as their source commit.
+    if: github.event_name != 'workflow_dispatch' || github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5

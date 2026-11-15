@@ -57,12 +57,50 @@ func TestHookFailsOpen(t *testing.T) {
 }
 
 func TestHookPanicFailsOpen(t *testing.T) {
-	orig := hookClaude
-	t.Cleanup(func() { hookClaude = orig })
+	origClaude := hookClaude
+	t.Cleanup(func() { hookClaude = origClaude })
 	hookClaude = func([]byte) []byte { panic("boom") }
 	var out, errb bytes.Buffer
 	if code := run([]string{"hook", "--agent", "claude"}, strings.NewReader(`{}`), &out, &errb); code != 0 || out.Len() != 0 {
 		t.Fatalf("run(hook, panicking adapter) = %d, stdout %q, want 0 and empty", code, out.String())
+	}
+
+	origAntigravity := hookAntigravity
+	t.Cleanup(func() { hookAntigravity = origAntigravity })
+	hookAntigravity = func([]byte) []byte { panic("boom") }
+	out.Reset()
+	errb.Reset()
+	if code := run([]string{"hook", "--agent", "antigravity"}, strings.NewReader(`{}`), &out, &errb); code != 0 || out.Len() != 0 {
+		t.Fatalf("run(hook, panicking antigravity adapter) = %d, stdout %q, want 0 and empty", code, out.String())
+	}
+}
+
+func TestHookAntigravityFailsOpen(t *testing.T) {
+	t.Setenv("AGENT_QUORUM_HOME", shortTemp(t))
+	t.Setenv("AGENT_QUORUM_NO_START", "1")
+	edit := `{"conversationId":"s1","cwd":"/tmp","hookEventName":"PreToolUse","toolCall":{"name":"edit_file","args":{"Path":"/tmp/x.go"}}}`
+	cases := map[string]string{
+		"no session":   `{"hookEventName":"PreToolUse","toolCall":{"name":"edit_file"}}`,
+		"no daemon":    edit,
+		"invalid json": `{"hookEventName":`,
+		"empty":        ``,
+		"unknown tool": `{"conversationId":"s1","hookEventName":"PreToolUse","toolCall":{"name":"read_file"}}`,
+		"wrong types":  `{"conversationId":42,"hookEventName":["x"]}`,
+	}
+	for name, in := range cases {
+		t.Run(name, func(t *testing.T) {
+			var out, errb bytes.Buffer
+			start := time.Now()
+			if code := run([]string{"hook", "--agent", "antigravity"}, strings.NewReader(in), &out, &errb); code != 0 {
+				t.Errorf("run(hook --agent antigravity %s) = %d, want 0", name, code)
+			}
+			if out.Len() != 0 {
+				t.Errorf("run(hook --agent antigravity %s) stdout = %q, want empty", name, out.String())
+			}
+			if d := time.Since(start); d > 400*time.Millisecond {
+				t.Errorf("run(hook --agent antigravity %s) took %v, want <= 400ms", name, d)
+			}
+		})
 	}
 }
 
