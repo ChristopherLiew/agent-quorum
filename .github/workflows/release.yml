@@ -31,6 +31,7 @@ jobs:
         with:
           node-version: 22
       - run: npm install -g @anthropic-ai/claude-code
+      - run: npm install -g @openai/codex
 
       - name: Resolve version and channel
         id: v
