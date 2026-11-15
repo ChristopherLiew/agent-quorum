@@ -1,0 +1,12 @@
+{
+  "conversationId": "ag-conv-001",
+  "workspacePaths": ["/home/user/my-project"],
+  "hookEventName": "PreToolUse",
+  "toolCall": {
+    "id": "toolu_06",
+    "name": "replace_file_content",
+    "args": {
+      "TargetContent": "foo"
+    }
+  }
+}

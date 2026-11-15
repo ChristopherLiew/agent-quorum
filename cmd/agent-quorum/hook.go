@@ -7,6 +7,7 @@ import (
 
 	"github.com/bytedance/sonic"
 
+	"github.com/ChristopherLiew/agent-quorum/internal/adapter/antigravity"
 	"github.com/ChristopherLiew/agent-quorum/internal/adapter/claude"
 	"github.com/ChristopherLiew/agent-quorum/internal/adapter/codex"
 	"github.com/ChristopherLiew/agent-quorum/internal/client"
@@ -53,6 +54,13 @@ func runHook(args []string, stdin io.Reader, stdout io.Writer) (code int) {
 		}
 		return 0
 	}
+	if agent == "antigravity" {
+		out := hookAntigravity(payload)
+		if len(out) > 0 {
+			_, _ = stdout.Write(out)
+		}
+		return 0
+	}
 	if agent != "claude" {
 		return 0 // no adapter for this agent yet
 	}
@@ -86,6 +94,30 @@ var hookCodex = func(payload []byte) []byte {
 		return nil
 	}
 	return codex.Render(ev, resp).Stdout
+}
+
+var hookAntigravity = func(payload []byte) []byte {
+	ev, err := antigravity.Parse(payload)
+	if err != nil || !ev.HasReq {
+		return nil
+	}
+	req := ev.Req
+	if req.Op == proto.OpNote && os.Getenv("AGENT_QUORUM_NO_NOTES") == "1" {
+		return nil
+	}
+	req.PID = agentPID()
+	for i, p := range req.Paths {
+		req.Paths[i] = client.NormalizePath(p)
+	}
+	timeout := hookTimeout
+	if req.Op == proto.OpBye {
+		timeout = byeTimeout
+	}
+	resp, err := client.Do(req, client.Options{Timeout: timeout, Start: req.Op != proto.OpBye && os.Getenv("AGENT_QUORUM_NO_START") != "1"})
+	if err != nil {
+		return nil
+	}
+	return antigravity.Render(ev, resp).Stdout
 }
 
 // hookClaude is swapped in tests to prove that a panicking adapter fails open.

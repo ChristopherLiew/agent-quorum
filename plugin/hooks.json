@@ -1,0 +1,37 @@
+{
+  "agent-quorum": {
+    "SessionStart": [
+      {
+        "type": "command",
+        "command": "./scripts/antigravity-session-start.sh",
+        "timeout": 60
+      }
+    ],
+    "PreInvocation": [
+      {
+        "type": "command",
+        "command": "./scripts/agent-quorum.sh hook --agent antigravity",
+        "timeout": 5
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "run_command|write_to_file|replace_file_content|multi_replace_file_content|apply_patch",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "./scripts/agent-quorum.sh hook --agent antigravity",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "type": "command",
+        "command": "./scripts/agent-quorum.sh hook --agent antigravity",
+        "timeout": 5
+      }
+    ]
+  }
+}

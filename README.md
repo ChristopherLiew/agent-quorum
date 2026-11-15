@@ -6,7 +6,7 @@
 
 [![ci](https://github.com/ChristopherLiew/agent-quorum/actions/workflows/ci.yml/badge.svg)](https://github.com/ChristopherLiew/agent-quorum/actions/workflows/ci.yml)
 
-A Claude Code and Codex plugin that lets several agent sessions work in the same repository at once without overwriting each other.
+A Claude Code, Codex, and Antigravity plugin that lets several agent sessions work in the same repository at once without overwriting each other.
 
 <p align="center">
   <img src="assets/overview.svg" alt="Two agent sessions want the same file. agent-quorum lets the first edit it and blocks the second, which is told who holds the file." width="820">
@@ -31,7 +31,7 @@ agent-quorum: /src/app/auth.go is being edited by another agent session (claude:
 
 ## Install
 
-Requires macOS or Linux and Claude Code or Codex.
+Requires macOS or Linux and Claude Code, Codex, or Antigravity.
 
 ```bash
 claude plugin marketplace add ChristopherLiew/agent-quorum#stable
@@ -47,8 +47,18 @@ codex plugin add agent-quorum@agent-quorum-tools
 
 The plugin downloads its binary on the next session start and verifies it against the release checksums. Codex loads the hooks from its compatibility manifest. Review and trust the bundled hooks in Codex before they run.
 
+For Antigravity, clone this repository and install the bundled plugin directory:
+
+```bash
+git clone https://github.com/ChristopherLiew/agent-quorum.git
+agy plugin install ./agent-quorum/plugin
+```
+
+Antigravity loads the plugin hooks for session startup, prompts, file writes and edits, shell commands, and the end of an agent run. The next prompt in a still-open conversation registers again and refreshes peer context.
+
 - **Update:** `claude plugin update agent-quorum@agent-quorum-tools`
 - **Codex update:** `codex plugin marketplace upgrade agent-quorum-tools`
+- **Antigravity update:** reinstall the local plugin directory after updating the repository checkout.
 - **Release candidates:** add the marketplace with `#latest` instead of `#stable`.
 - **Terminal CLI** (optional): the binary is installed at `~/.agent-quorum/bin/agent-quorum-<version>`. Symlink it onto your `PATH` as `agent-quorum`.
 
@@ -73,11 +83,11 @@ claude:3b80d4c2  pid 4310  idle 2m5s  /src/app  "add retry to the http client"
 
 ## How it works
 
-The plugin adds hooks to Claude Code. Each hook call asks a small local daemon, shared by every session on your machine, whether the edit or git command is safe. The daemon starts by itself on the first hook and keeps its state in `~/.agent-quorum`.
+Each agent plugin uses native hooks to ask a small local daemon, shared by every session on your machine, whether the edit or git command is safe. The daemon starts by itself on the first hook and keeps its state in `~/.agent-quorum`.
 
 ```mermaid
 sequenceDiagram
-  participant C as Claude Code session
+  participant C as agent session
   participant D as agent-quorum daemon
   Note over C: session starts
   C->>D: SessionStart (starts the daemon if it is not running)
@@ -93,10 +103,10 @@ sequenceDiagram
 - **Holding a file.** The first edit takes a claim. It lasts while the holder's process is alive and the file has uncommitted changes, plus a 120 second grace period after the last edit.
 - **Crashes.** If a session dies without exiting cleanly, its files free up the next time anyone asks for them.
 - **Daemon restarts.** If the daemon stops, the next hook starts a new one and reloads the saved claims.
-- **Fails open.** If agent-quorum is broken or missing, your agents behave as if it were not installed. It never auto-approves anything, so Claude Code's own permission prompts still apply.
+- **Fails open.** If agent-quorum is broken or missing, your agents behave as if it were not installed. It never auto-approves anything, so each agent's own permission prompts still apply.
 - **Privacy.** The first 80 characters of each prompt are stored locally so sessions can see what the others are working on. Nothing leaves your machine. Set `AGENT_QUORUM_NO_NOTES=1` to turn it off.
 
-Limits: it coordinates cooperating agents and is not a security boundary. Shell writes such as `sed -i` are not intercepted, edits you make in an editor are not seen, and it works on one machine for one user. Codex file claims cover `apply_patch`; shell writes remain outside hook coverage.
+Limits: it coordinates cooperating agents and is not a security boundary. Shell writes such as `sed -i` are not intercepted, edits you make in an editor are not seen, and it works on one machine for one user. Codex file claims cover `apply_patch`; Antigravity claims cover `write_to_file`, `replace_file_content`, and `multi_replace_file_content`. Shell writes remain outside hook coverage.
 
 ## Debugging
 

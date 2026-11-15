@@ -13,8 +13,10 @@ if [ -n "${AGENT_QUORUM_BIN:-}" ] && [ -x "$AGENT_QUORUM_BIN" ]; then
   exec "$AGENT_QUORUM_BIN" "$@"
 fi
 
+manifest="$root/.claude-plugin/plugin.json"
+[ -f "$manifest" ] || manifest="$root/.antigravity-plugin/plugin.json"
 ver=$(sed -n '/"version"/{s/.*"version"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p;q;}' \
-  "$root/.claude-plugin/plugin.json" 2>/dev/null)
+  "$manifest" 2>/dev/null)
 bin="${AGENT_QUORUM_HOME:-$HOME/.agent-quorum}/bin/agent-quorum-$ver"
 if [ -n "$ver" ] && [ -x "$bin" ]; then
   exec "$bin" "$@"

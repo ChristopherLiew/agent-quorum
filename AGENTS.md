@@ -6,7 +6,7 @@ This file is shared project guidance for coding agents that read `AGENTS.md` (in
 
 agent-quorum coordinates coding-agent sessions that share one working tree. A local daemon tracks sessions and file claims. Agent-specific hooks are adapters around a neutral wire protocol; keep agent JSON and output formats out of the daemon and core.
 
-Codex and Claude Code hooks are implemented. Codex support lives in `internal/adapter/codex/`, its compatibility manifest is `plugin/.codex-plugin/plugin.json`, and its hook config is `plugin/hooks/codex.json`. Codex hooks currently register sessions, record prompts, guard Bash git commands, and claim paths in `apply_patch`. Antigravity and other agents do not have adapters unless one is added explicitly; do not describe them as supported based only on this shared instruction file.
+Claude Code, Codex, and Antigravity hooks are implemented. Codex support lives in `internal/adapter/codex/`, its compatibility manifest is `plugin/.codex-plugin/plugin.json`, and its hook config is `plugin/hooks/codex.json`. Codex hooks currently register sessions, record prompts, guard Bash git commands, and claim paths in `apply_patch`. Antigravity support lives in `internal/adapter/antigravity/`, its manifest is `plugin/.antigravity-plugin/plugin.json`, and its hooks are in `plugin/hooks.json`; it registers lifecycle events, records prompts, guards `run_command`, and claims paths for Antigravity's file write and edit tools.
 
 ## Working in this repository
 

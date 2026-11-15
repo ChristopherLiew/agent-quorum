@@ -1,0 +1,13 @@
+{
+  "conversationId": "ag-conv-001",
+  "workspacePaths": ["/home/user/my-project"],
+  "hookEventName": "PreToolUse",
+  "toolCall": {
+    "id": "toolu_02",
+    "name": "write_to_file",
+    "args": {
+      "TargetFile": "/home/user/my-project/docs/notes.md",
+      "CodeContent": "hello world"
+    }
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "conversationId": "ag-conv-001",
+  "workspacePaths": ["/home/user/my-project"],
+  "hookEventName": "Stop",
+  "fullyIdle": false
+}

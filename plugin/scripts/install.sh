@@ -7,8 +7,10 @@ set -eu
 REPO="ChristopherLiew/agent-quorum"
 
 root="${0%/*}/.."
+manifest="$root/.claude-plugin/plugin.json"
+[ -f "$manifest" ] || manifest="$root/.antigravity-plugin/plugin.json"
 ver=$(sed -n '/"version"/{s/.*"version"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p;q;}' \
-  "$root/.claude-plugin/plugin.json")
+  "$manifest")
 [ -n "$ver" ] || { echo "install: no version in plugin.json" >&2; exit 1; }
 
 home="${AGENT_QUORUM_HOME:-$HOME/.agent-quorum}"
