@@ -6,6 +6,7 @@ Thanks for helping. This file covers the dev loop, the rules the code lives by, 
 
 - Go 1.27
 - `jq` (used by `make lint`, `make release` and the version stamp)
+- the `gh` CLI, for `make release` to open the release pull request
 - `shellcheck` (optional locally, enforced in CI)
 - the `claude` CLI, for `make validate-plugin` and for trying the plugin by hand
 - `git`, `curl`, `tar`
@@ -30,7 +31,7 @@ Every make target:
 | `make validate-plugin` | `claude plugin validate ./plugin --strict` and `claude plugin validate .`. Needs the `claude` CLI. |
 | `make snapshot` | Cross-compiles the four release archives (darwin and linux, amd64 and arm64) and `checksums.txt` into `./dist`. |
 | `make dev` | `make build`, then `AGENT_QUORUM_BIN=$PWD/bin/agent-quorum claude --plugin-dir ./plugin`. |
-| `make release V=1.2.3` | Runs `make check`, then `scripts/bump-version.sh`: edits `plugin.json`, commits, and creates the annotated tag `v1.2.3`. Does not push. |
+| `make release V=1.2.3` | Runs `make check`, then `scripts/bump-version.sh`: creates `release/v1.2.3`, sets the version in `plugin.json`, commits, pushes and opens the release pull request. Merging it publishes the release. |
 | `make clean` | Removes `bin` and `dist`. |
 
 Run one test:
@@ -97,12 +98,22 @@ Do not break these. Review will check each one.
 - A new guard rule needs a table row for the case it blocks and one for the near-miss it must allow.
 - Changes to deny or context text need a test on the text, since the model is the reader.
 
-## Commits and pull requests
+## Branches and pull requests
 
-- Conventional, short subjects in the imperative: `fix: allow git stash list`, `feat: add status --json`, `docs: explain grace period`. One logical change per commit.
-- Branch from `main`, open a pull request against `main`, and keep it focused. Describe the behaviour change and how you tested it. Mention a change to any public surface (see [Versioning](#versioning)) explicitly.
-- `make check` must pass. CI also runs `make validate-plugin`.
-- Do not edit the `version` in `plugin/.claude-plugin/plugin.json` by hand. It changes only through `make release`.
+`main` is protected. Nothing is pushed to it directly, including releases: every change lands through a pull request.
+
+1. **Branch from an up-to-date `main`.** Name it for the change: `feat/...`, `fix/...`, `docs/...`, `ci/...`. Release branches are `release/vX.Y.Z` and are created by `make release`.
+2. **Commit** with short imperative subjects, one logical change per commit: `fix: allow git stash list`, `feat: add status --json`.
+3. **Run `make check` locally**, and `make validate-plugin` if you touched `plugin/` or the marketplace manifest.
+4. **Open a pull request against `main`.** Describe the behaviour change and how you tested it. Call out any change to a public surface (see [Versioning](#versioning)), because it decides the next version bump.
+5. **CI must be green** (`test` on Ubuntu and macOS, `lint`, `plugin`) and the pull request needs an approving review before it can merge.
+6. **Squash-merge**, then delete the branch. The squash subject becomes the line in the generated release notes, so make it read well.
+
+Rules:
+
+- Do not edit `version` in `plugin/.claude-plugin/plugin.json` in an ordinary pull request. A version change on `main` publishes a release; it happens only in a release pull request.
+- Do not commit to `stable` or `latest`. They are channel branches moved by the release workflow.
+- Do not force-push `main` or rewrite published tags.
 
 ## Versioning
 
@@ -160,15 +171,15 @@ Version 1.0.0 will be declared once the Claude Code hooks, the CLI and the wire 
 
 A pre-release such as `v0.2.0-rc.1` precedes `v0.2.0` in precedence and means "candidate, may still change". Use `-rc.N` for release candidates.
 
-- `make release V=0.2.0-rc.1` works the same as for a stable version. `scripts/semver.sh` validates the version strictly (it rejects `1.2`, `v1.2.3`, `1.2.3.4` and leading zeros).
-- The release workflow publishes a tag with a pre-release suffix as a GitHub **pre-release**, and moves only the `latest` channel. Stable users are not affected.
+- `make release V=0.2.0-rc.1` opens a release pull request exactly as for a stable version. `scripts/semver.sh` validates the version strictly (it rejects `1.2`, `v1.2.3`, `1.2.3.4` and leading zeros).
+- When that pull request merges, the release workflow publishes a GitHub **pre-release** and moves only the `latest` channel. Users on `stable` are not affected.
 - Release assets carry the full version: `agent-quorum_0.2.0-rc.1_linux_amd64.tar.gz`.
-- Cut release candidates from a release branch, not from `main`. A user who added the marketplace without a channel reads `main`, and would otherwise be offered the candidate.
+- `main` carries the candidate's version until the stable release merges. `main` is not a channel; users should add the marketplace with `#stable` or `#latest`.
 
 ### Where the version lives
 
-- `plugin/.claude-plugin/plugin.json` `version` is the single source of truth. `make release` is the only thing that edits it.
-- The git tag is `v<version>`, annotated, created by `scripts/bump-version.sh`. The release workflow fails if tag and manifest disagree.
+- `plugin/.claude-plugin/plugin.json` `version` is the single source of truth. Only a release pull request, opened by `make release`, edits it.
+- The git tag is `v<version>`, annotated, created by the release workflow on the merge commit. Nobody tags by hand in the normal flow.
 - Binaries are stamped at build time with `-ldflags "-X main.version=<version>"`. `scripts/release-build.sh` stamps the exact version; `make build` stamps `<version>-dev`. An unstamped `go build` reports `dev`.
 - Claude Code users stay on their cached copy of a plugin until the `version` string changes, so a release is a version bump or it is nothing.
 - The **wire protocol version `v` is independent of the product version.** It changes only for an incompatible protocol change, which is also a MAJOR change of the product. Many product releases share `v: 1`.
@@ -186,14 +197,16 @@ Two workflows in `.github/workflows/`.
 | `lint` | `make lint` (shellcheck, `sh -n`, JSON syntax), and that the launcher fails open when no binary exists |
 | `plugin` | `make validate-plugin`: `claude plugin validate ./plugin --strict` and the marketplace manifest |
 
-**`release.yml`** runs when a `v*` tag is pushed. Releases are serialised and never cancelled halfway.
+**`release.yml`** publishes a release. It runs when a push to `main` changes `plugin/.claude-plugin/plugin.json`, which in practice means when a release pull request is merged. If the version in the manifest has no tag yet, it tags the merge commit and publishes; if the tag already exists it does nothing. Releases are serialised and never cancelled halfway. (Pushing a `v*` tag by hand also triggers it, as a fallback.)
 
 ```mermaid
 flowchart TD
-  T["tag vX.Y.Z or vX.Y.Z-rc.N pushed"] --> V["tag equals plugin.json version, and is valid SemVer"]
+  R["make release V=X.Y.Z opens PR release/vX.Y.Z"] --> M["review, CI green, squash-merge to main"]
+  M --> V["release.yml: version is valid SemVer and not yet tagged"]
   V --> C["make check and make validate-plugin"]
   C --> B["build 4 archives and checksums.txt"]
-  B --> G["GitHub release (marked pre-release for -rc tags)"]
+  B --> T["tag the merge commit vX.Y.Z"]
+  T --> G["GitHub release (marked pre-release for -rc versions)"]
   G --> P["claude plugin tag: agent-quorum--vX.Y.Z"]
   P --> Q{"pre-release?"}
   Q -- "yes" --> L["move branch latest"]
@@ -230,48 +243,37 @@ To rehearse the channel moves without pushing: `DRY_RUN=1 scripts/publish-channe
 
 Run this before every tag. Do not skip steps because the change is small.
 
-```mermaid
-flowchart LR
-  R["make release V=x.y.z"] --> B["plugin.json version set, commit and tag vx.y.z"]
-  B --> P["git push --follow-tags"]
-  P --> CI["release.yml: tag equals plugin.json, make check, build 4 archives"]
-  CI --> GH["GitHub release: archives and checksums.txt"]
-  P --> MK["marketplace on main now lists x.y.z"]
-  MK --> UP["user updates the plugin"]
-  UP --> SS["next SessionStart: install.sh downloads and verifies x.y.z"]
-  GH --> SS
-```
-
-1. **Clean tree, on `main`, CI green.** `git status` is clean, you are on an up-to-date `main`, and the latest CI run on that commit passed on both Ubuntu and macOS.
-2. **Decide the bump** (`x.y.z`) from the rules above, by reading the changes since the last tag (`git log <last-tag>..HEAD`). Look for anything touching the public API.
+1. **Start from a clean, up-to-date `main` with CI green.** `git status` is clean, `git pull` is done, and the latest CI run on that commit passed on Ubuntu and macOS.
+2. **Decide the version** (`x.y.z`, or `x.y.z-rc.N` for a candidate) from the versioning rules above, by reading the changes since the last tag (`git log <last-tag>..HEAD`). Look for anything touching the public API.
 3. **`make check`.** vet, lint and race tests must pass locally. Install `shellcheck` so lint is not skipped.
 4. **`make validate-plugin`.** Strict validation of the plugin and of the marketplace root.
-5. **`make snapshot`, then inspect `dist/`.** There must be exactly four archives (`darwin` and `linux`, `amd64` and `arm64`) and `checksums.txt`. Verify the checksums (`shasum -a 256 -c checksums.txt` run inside `dist/`), unpack the archive for your platform and run `agent-quorum version`.
-6. **End-to-end by hand with two real sessions** on the current Claude Code version, using a snapshot or `make dev` build and a scratch repository and `AGENT_QUORUM_HOME`:
+5. **`make snapshot`, then inspect `dist/`.** There must be exactly four archives (`darwin` and `linux`, `amd64` and `arm64`) and `checksums.txt`. Verify the checksums (`shasum -a 256 -c checksums.txt` inside `dist/`), unpack the archive for your platform and run `agent-quorum version`.
+6. **End-to-end by hand with two real sessions** on the current Claude Code version, using `make dev`, a scratch repository and a scratch `AGENT_QUORUM_HOME`:
    - Edit conflict: session A edits a file, session B's edit to it is denied with the holder named.
-   - Kill and recover: kill A (`kill`, not `/exit`), then confirm B can edit the file, and `agent-quorum status` no longer lists A.
+   - Kill and recover: kill A (`kill`, not `/exit`), then confirm B can edit the file and `agent-quorum status` no longer lists A.
    - Commit and release: A edits, commits, waits past the 120 second grace period, and B's edit is then granted.
-   - Git stash refusal: while A holds a dirty file, B's `git stash` and `git add -A` are denied, and `git add <path>` is allowed.
-   - Also confirm a normal, single-session run is unaffected and that the daemon starts and stops cleanly (`agent-quorum stop`).
-7. **Real fixtures still match.** Capture payloads with `AGENT_QUORUM_CAPTURE` on the current Claude Code version and diff them against `testdata/hooks/claude/`. Update fixtures and adapter if the payloads drifted.
-8. **Docs.** README and the changelog (or the draft release notes, if no CHANGELOG file exists yet) describe the release, including anything under "Breaking" for a pre-1.0 `y` bump.
-9. **Cut it:** `make release V=x.y.z`. This runs `make check`, edits `plugin.json`, commits `release vx.y.z`, and creates the annotated tag.
-10. **Publish:** `git push --follow-tags`. Then watch the `release` workflow in GitHub Actions to completion (see [CI/CD](#cicd) for what it does).
-11. **Verify the release.** The release page has the four `agent-quorum_<version>_<os>_<arch>.tar.gz` assets and `checksums.txt`, a pre-release is marked as one, the `agent-quorum--v<version>` tag exists, and the channel branches point where you expect (`git ls-remote origin stable latest`). On a clean machine or with an empty `HOME`, install through the marketplace, start a session, and confirm `~/.agent-quorum/bin/agent-quorum-<version>` appears (the download is checksum-verified by `install.sh`, and a mismatch leaves no binary) and `status` works.
-12. **Post-release.** Run `agent-quorum stop` on your own machine so the next hook starts a daemon of the new version (old daemons keep running otherwise). Announce the release with a link to the notes and any breaking changes.
+   - Git guard: while A holds a dirty file, B's `git stash` and `git add -A` are denied, and `git add <path>` is allowed.
+   - A single-session run is unaffected, and the daemon starts and stops cleanly (`agent-quorum stop`).
+7. **Fixtures still match.** Capture payloads with `AGENT_QUORUM_CAPTURE` on the current Claude Code version and compare them with `testdata/hooks/claude/`. Update fixtures and adapter if the payloads drifted.
+8. **Docs.** README and CONTRIBUTING describe the release, including anything breaking.
+9. **Open the release pull request:** `make release V=x.y.z`. This runs `make check`, creates the branch `release/vx.y.z`, sets the version in `plugin.json`, commits `release vx.y.z`, pushes the branch and opens the pull request. It refuses a dirty tree, a branch other than `main`, a `main` that is behind `origin`, an invalid version and a version that is already tagged.
+10. **Review and merge.** The pull request contains only the version change. Wait for CI and an approving review, then squash-merge. **Merging is the release**: do not merge until you mean to publish.
+11. **Watch the `release` workflow** on `main` to completion (see [CI/CD](#cicd)). If a step fails before the tag is created, fix the cause in a normal pull request and re-run the workflow. If it fails after the tag exists, see [Rollback](#rollback).
+12. **Verify the release.** The release page has the four `agent-quorum_<version>_<os>_<arch>.tar.gz` assets and `checksums.txt`; a candidate is marked pre-release; the tags `v<version>` and `agent-quorum--v<version>` exist; and the channel branches point where you expect (`git ls-remote origin stable latest`). Then, with a scratch `CLAUDE_CONFIG_DIR` and `AGENT_QUORUM_HOME`, add the marketplace on that channel, install the plugin, start a session, and confirm `agent-quorum-<version>` appears under `bin/` and `status` works.
+13. **Post-release.** Run `agent-quorum stop` on your own machine so the next hook starts a daemon of the new version. Delete the release branch. Announce the release with a link to the notes and any breaking changes.
 
 ### Rollback
 
 Users cache plugin versions by their `version` string, and a tag and its checksums are a promise. Therefore:
 
 - **Never delete and re-tag a published version, and never replace its assets.** Anyone who already installed it would keep the old bytes under the same version, and nobody could tell.
-- **Ship a new PATCH that fixes or reverts the problem.** Revert the offending commit on `main`, run the SOP again, and release `x.y.(z+1)`. Users receive it when they update the plugin.
+- **Ship a new PATCH that fixes or reverts the problem.** Revert the offending change through a pull request, run the SOP again, and release `x.y.(z+1)`. Users receive it when they update the plugin.
 - If the bad release is dangerous, edit its GitHub release notes with a warning. If the binary itself is the problem, deleting that release's assets makes installs fail, which fails open, so agents keep working without coordination until the fix ships.
 - A bad daemon keeps running after a bad release is replaced. Tell users to run `agent-quorum stop`.
 
 ### The marketplace window
 
-Users on the `stable` or `latest` channel are not exposed to a half-published release, because the workflow moves those branches last. The window remains only for users who added the marketplace without a channel suffix: they read `main`, which carries the version bump as soon as it is pushed, a few minutes before the binaries exist. For them `install.sh` fails, the launcher fails open, and the next `SessionStart` retries the download. Point users at `#stable` to avoid it.
+Users on `stable` or `latest` are never offered a half-published release, because the workflow moves those branches last. Users who added the marketplace without a channel suffix read `main`, which carries the new version from the moment the release pull request merges, a few minutes before the binaries exist. For them the download fails, the launcher fails open, and the next `SessionStart` retries. Point users at `#stable`.
 
 ## Known gaps in the release tooling
 

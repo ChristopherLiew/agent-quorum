@@ -22,7 +22,7 @@ agent-quorum is local coordination for concurrent coding-agent sessions that sha
 | `make validate-plugin` | `claude plugin validate` on `./plugin` (`--strict`) and on the marketplace root |
 | `make dev` | Build, then start Claude Code with the local plugin and `AGENT_QUORUM_BIN` pointing at the local binary |
 | `make snapshot` | Cross-compile all four release archives into `./dist` |
-| `make release V=1.2.3` | Check, bump `plugin.json`, commit, annotated tag `v1.2.3` (needs a clean tree; publish with `git push --follow-tags`) |
+| `make release V=1.2.3` | Check, then open the release pull request (`release/v1.2.3`). Merging it publishes the release. |
 
 Single test: `go test -race -run TestHookFailsOpen ./cmd/agent-quorum`
 
@@ -79,7 +79,8 @@ internal/gitx/             thin wrappers over the git CLI
 
 The repo root is both the source tree and a Claude Code marketplace (`.claude-plugin/marketplace.json`, name `agent-quorum-tools`) with one plugin at `./plugin`.
 
-- `plugin/.claude-plugin/plugin.json` `version` is the single source of truth for the version (never also set it in the marketplace entry). The release workflow fails if the tag does not match it. Change it only through `make release`, which accepts `1.2.3` and pre-releases such as `1.2.3-rc.1`.
+- `plugin/.claude-plugin/plugin.json` `version` is the single source of truth for the version (never also set it in the marketplace entry). Change it only through `make release`, which accepts `1.2.3` and pre-releases such as `1.2.3-rc.1` and opens a release pull request. A version change landing on `main` is what triggers `release.yml` to tag and publish.
+- `main` is protected: every change, including a release, goes through a pull request. Never push to `main`, and never create release tags by hand.
 - Marketplace channels are the branches `stable` and `latest`, moved only by `scripts/publish-channels.sh` from `release.yml` after the binaries are published. Never commit to them by hand. `CONTRIBUTING.md` (CI/CD) has the rules.
 - The plugin ships shell scripts only, in `scripts/` (a top-level `bin/` is rejected by claude.ai and Cowork). The binary is downloaded from GitHub Releases to `~/.agent-quorum/bin/agent-quorum-<version>` by `install.sh`, with checksum verification and an atomic move.
 - Every hook goes through `plugin/scripts/agent-quorum.sh`, which resolves `$AGENT_QUORUM_BIN`, then the versioned installed binary, then `agent-quorum` on `PATH`, and exits 0 if none exists.
