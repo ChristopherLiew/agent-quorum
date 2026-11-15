@@ -7,6 +7,7 @@
 set -eu
 ver="${1:?usage: bump-version.sh <version without v>}"
 manifest=plugin/.claude-plugin/plugin.json
+codex_manifest=plugin/.codex-plugin/plugin.json
 branch="release/v$ver"
 
 "${0%/*}/semver.sh" check "$ver"
@@ -25,7 +26,9 @@ git checkout -q -b "$branch"
 tmp=$(mktemp)
 jq --arg v "$ver" '.version = $v' "$manifest" > "$tmp"
 mv "$tmp" "$manifest"
-git add "$manifest"
+jq --arg v "$ver" '.version = $v' "$codex_manifest" > "$tmp"
+mv "$tmp" "$codex_manifest"
+git add "$manifest" "$codex_manifest"
 git commit -q -m "release v$ver"
 
 if [ -n "${NO_PUSH:-}" ]; then

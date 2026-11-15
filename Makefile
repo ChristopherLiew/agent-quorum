@@ -16,11 +16,13 @@ vet:
 lint:             ## shell + JSON checks (shellcheck is optional locally, required in CI)
 	@for f in plugin/scripts/*.sh scripts/*.sh; do sh -n "$$f" || exit 1; done
 	@command -v shellcheck >/dev/null && shellcheck plugin/scripts/*.sh scripts/*.sh || echo "shellcheck not installed, skipped"
-	@jq empty .claude-plugin/marketplace.json plugin/.claude-plugin/plugin.json plugin/hooks/hooks.json
+	@jq empty .claude-plugin/marketplace.json plugin/.claude-plugin/plugin.json plugin/.codex-plugin/plugin.json plugin/hooks/hooks.json plugin/hooks/codex.json
+	@jq -e -s '.[0].version == .[1].version' plugin/.claude-plugin/plugin.json plugin/.codex-plugin/plugin.json >/dev/null
 
-validate-plugin:  ## needs the claude CLI
+validate-plugin:  ## needs the claude and codex CLIs
 	claude plugin validate ./plugin --strict
 	claude plugin validate .
+	scripts/validate-codex-plugin.sh
 
 check: vet lint test   ## what CI runs
 
