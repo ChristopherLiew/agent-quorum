@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 agent-quorum is local coordination for concurrent coding-agent sessions that share **one working tree** (no worktrees): it stops sessions from editing the same uncommitted file, blocks tree-wide git commands that would clobber another session's work, and lets sessions see each other.
 
-**Current state:** the daemon, hook client, Claude Code adapter, git guard, presence and the `check --staged` pre-commit backstop are implemented and tested (DESIGN.md milestones M1 to M6 and part of M7). Not built yet: the Codex adapter (M8), `PostToolUse` detection of shell edits, the notes mailbox and MCP server, and the mod. Releases are published from tags by `release.yml`; `make dev` runs the local build.
+**Current state:** the daemon, hook client, Claude Code and Codex adapters, git guard, presence and the `check --staged` pre-commit backstop are implemented. Codex hooks cover lifecycle registration, prompt notes, Bash guards and `apply_patch` claims. `PostToolUse` detection of shell edits, the notes mailbox and MCP server, and the mod are not built. Releases are published from tags by `release.yml`; `make dev` runs the local build.
 
 `docs/DESIGN.md` is the design rationale. Read the relevant section before changing behaviour, but the code wins where they differ (known differences: the hook budget is 1.5 s rather than 250 ms, and the project is no longer standard-library-only). `docs/` is in `.gitignore`, so the design doc is local-only and absent from a fresh clone and from CI. `README.md` is the public description; `CONTRIBUTING.md` holds the dev guide, the semantic versioning rules and the release SOP, which must be followed before any tag.
 
@@ -51,6 +51,7 @@ internal/proto/            Request, Response, Version (neutral wire protocol)
 internal/core/             State, Session, Claim, decisions
 internal/guard/            Classify(command) Risk
 internal/adapter/claude/   Parse, Render
+internal/adapter/codex/    Parse, Render
 internal/daemon/           socket server, lock, snapshot, real Env
 internal/client/           dial, start-on-demand, deadlines
 internal/gitx/             thin wrappers over the git CLI
@@ -77,13 +78,14 @@ internal/gitx/             thin wrappers over the git CLI
 
 ### Plugin and release packaging
 
-The repo root is both the source tree and a Claude Code marketplace (`.claude-plugin/marketplace.json`, name `agent-quorum-tools`) with one plugin at `./plugin`.
+The repo root is both a Claude Code and Codex marketplace (`.claude-plugin/marketplace.json`, name `agent-quorum-tools`) with one plugin at `./plugin`.
 
-- `plugin/.claude-plugin/plugin.json` `version` is the single source of truth for the version (never also set it in the marketplace entry). Change it only through `make release`, which accepts `1.2.3` and pre-releases such as `1.2.3-rc.1` and opens a release pull request. A version change landing on `main` is what triggers `release.yml` to tag and publish.
+- `plugin/.claude-plugin/plugin.json` is the release version source of truth; keep its version mirrored in `plugin/.codex-plugin/plugin.json`. `make release` updates both, accepts `1.2.3` and pre-releases such as `1.2.3-rc.1`, and opens a release pull request. A version change landing on `main` is what triggers `release.yml` to tag and publish.
 - `main` is protected: every change, including a release, goes through a pull request. Never push to `main`, and never create release tags by hand.
 - Marketplace channels are the branches `stable` and `latest`, moved only by `scripts/publish-channels.sh` from `release.yml` after the binaries are published. Never commit to them by hand. `CONTRIBUTING.md` (CI/CD) has the rules.
 - The plugin ships shell scripts only, in `scripts/` (a top-level `bin/` is rejected by claude.ai and Cowork). The binary is downloaded from GitHub Releases to `~/.agent-quorum/bin/agent-quorum-<version>` by `install.sh`, with checksum verification and an atomic move.
 - Every hook goes through `plugin/scripts/agent-quorum.sh`, which resolves `$AGENT_QUORUM_BIN`, then the versioned installed binary, then `agent-quorum` on `PATH`, and exits 0 if none exists.
+- Codex hooks are declared by `plugin/.codex-plugin/plugin.json` and `plugin/hooks/codex.json`; use `${PLUGIN_ROOT}` for plugin files and keep Codex hook payload translation in `internal/adapter/codex`.
 - Hooks use exec form (`args` present) and the launcher uses `exec`, so that `getppid()` in the binary is the agent process. Liveness detection depends on this; do not insert a shell between them.
 - Hooks for one event run in parallel, so install-then-register on `SessionStart` is one script (`session-start.sh`), not two hooks.
 - Scripts are POSIX `sh`, must pass shellcheck, and parse `plugin.json` with `sed` (no `jq` at runtime on user machines).

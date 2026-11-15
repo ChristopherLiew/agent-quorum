@@ -1,0 +1,6 @@
+{
+  "name": "agent-quorum",
+  "version": "0.1.0",
+  "description": "Local coordination for concurrent coding-agent sessions",
+  "hooks": "./hooks/codex.json"
+}

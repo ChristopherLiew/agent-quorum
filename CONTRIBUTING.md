@@ -9,6 +9,7 @@ Thanks for helping. This file covers the dev loop, the rules the code lives by, 
 - the `gh` CLI, for `make release` to open the release pull request
 - `shellcheck` (optional locally, enforced in CI)
 - the `claude` CLI, for `make validate-plugin` and for trying the plugin by hand
+- the `codex` CLI, for installing and checking the Codex marketplace package locally
 - `git`, `curl`, `tar`
 - macOS or Linux
 
@@ -28,7 +29,7 @@ Every make target:
 | `make vet` | `go vet ./...` plus a gofmt check that fails on unformatted files. |
 | `make lint` | `sh -n` and shellcheck on `plugin/scripts/*.sh` and `scripts/*.sh`, and `jq empty` on the marketplace, plugin and hooks JSON. |
 | `make check` | `vet`, `lint`, `test`. |
-| `make validate-plugin` | `claude plugin validate ./plugin --strict` and `claude plugin validate .`. Needs the `claude` CLI. |
+| `make validate-plugin` | Validates the Claude plugin and marketplace, then discovers and installs the Codex plugin in a temporary `CODEX_HOME`. Needs the `claude`, `codex` and `jq` CLIs. |
 | `make snapshot` | Cross-compiles the four release archives (darwin and linux, amd64 and arm64) and `checksums.txt` into `./dist`. |
 | `make dev` | `make build`, then `AGENT_QUORUM_BIN=$PWD/bin/agent-quorum claude --plugin-dir ./plugin`. |
 | `make release V=1.2.3` | Runs `make check`, then `scripts/bump-version.sh`: creates `release/v1.2.3`, sets the version in `plugin.json`, commits, pushes and opens the release pull request. Merging it publishes the release. |
@@ -58,13 +59,14 @@ internal/proto/             Request, Response, Version: the neutral wire protoco
 internal/core/              State, Session, Claim, decisions and the deny/context texts. Pure.
 internal/guard/             Classify(command) Risk. Pure.
 internal/adapter/claude/    Parse and Render for Claude Code hook JSON. Pure.
+internal/adapter/codex/     Parse and Render for Codex hook JSON. Pure.
 internal/daemon/            socket server, flock, snapshot, the real core.Env
 internal/client/            dial, start-on-demand, deadlines, path normalisation
 internal/gitx/              thin wrappers over the git CLI
-plugin/                     the Claude Code plugin: hooks/hooks.json, scripts/*.sh, skills/status
+plugin/                     Claude Code and Codex manifests, hooks, scripts/*.sh, skills/status
 scripts/                    release-build.sh, bump-version.sh
-testdata/hooks/claude/      hook payload fixtures
-.claude-plugin/             marketplace.json: the repo root is also a marketplace
+testdata/hooks/claude/      Claude Code hook payload fixtures
+.claude-plugin/             marketplace.json: the repo root is a marketplace for Claude Code and Codex
 ```
 
 ### Invariants
@@ -92,7 +94,7 @@ Do not break these. Review will check each one.
 ## Testing expectations
 
 - Table-driven tests with a fake `core.Env`. Core logic is tested without a daemon, a clock or git.
-- Golden fixtures: each adapter is tested against payloads in `testdata/hooks/<agent>/`. When Claude Code changes a payload, update the fixtures from a real capture, not from memory.
+- Adapter tests cover payload parsing and rendering. Add fixtures under `testdata/hooks/<agent>/` for payloads worth preserving; when an agent changes its payload, capture it from a real run instead of guessing.
 - **Every new failure path in the hook gets a fail-open test** proving the result is exit 0 with empty stdout. `TestHookFailsOpen` in `cmd/agent-quorum` is the model.
 - Run everything with `-race` (`make test` does). Concurrency tests, such as many goroutines claiming one path with exactly one grant, belong in the package that owns the lock.
 - A new guard rule needs a table row for the case it blocks and one for the near-miss it must allow.
@@ -111,7 +113,7 @@ Do not break these. Review will check each one.
 
 Rules:
 
-- Do not edit `version` in `plugin/.claude-plugin/plugin.json` in an ordinary pull request. A version change on `main` publishes a release; it happens only in a release pull request.
+- Do not edit the version in either `plugin/.claude-plugin/plugin.json` or `plugin/.codex-plugin/plugin.json` in an ordinary pull request. `make release` updates both manifests together; a version change on `main` publishes a release.
 - Do not commit to `stable` or `latest`. They are channel branches moved by the release workflow.
 - Do not force-push `main` or rewrite published tags.
 
@@ -178,7 +180,7 @@ A pre-release such as `v0.2.0-rc.1` precedes `v0.2.0` in precedence and means "c
 
 ### Where the version lives
 
-- `plugin/.claude-plugin/plugin.json` `version` is the single source of truth. Only a release pull request, opened by `make release`, edits it.
+- `plugin/.claude-plugin/plugin.json` `version` is the source of truth and `plugin/.codex-plugin/plugin.json` mirrors it. Only a release pull request, opened by `make release`, edits these fields.
 - The git tag is `v<version>`, annotated, created by the release workflow on the merge commit. Nobody tags by hand in the normal flow.
 - Binaries are stamped at build time with `-ldflags "-X main.version=<version>"`. `scripts/release-build.sh` stamps the exact version; `make build` stamps `<version>-dev`. An unstamped `go build` reports `dev`.
 - Claude Code users stay on their cached copy of a plugin until the `version` string changes, so a release is a version bump or it is nothing.

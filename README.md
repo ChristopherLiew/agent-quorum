@@ -6,7 +6,7 @@
 
 [![ci](https://github.com/ChristopherLiew/agent-quorum/actions/workflows/ci.yml/badge.svg)](https://github.com/ChristopherLiew/agent-quorum/actions/workflows/ci.yml)
 
-A Claude Code plugin that lets several agent sessions work in the same repository at once without overwriting each other.
+A Claude Code and Codex plugin that lets several agent sessions work in the same repository at once without overwriting each other.
 
 <p align="center">
   <img src="assets/overview.svg" alt="Two agent sessions want the same file. agent-quorum lets the first edit it and blocks the second, which is told who holds the file." width="820">
@@ -31,22 +31,30 @@ agent-quorum: /src/app/auth.go is being edited by another agent session (claude:
 
 ## Install
 
-Requires macOS or Linux and Claude Code.
+Requires macOS or Linux and Claude Code or Codex.
 
 ```bash
 claude plugin marketplace add ChristopherLiew/agent-quorum#stable
 claude plugin install agent-quorum@agent-quorum-tools
 ```
 
-The plugin downloads its binary on the next session start and verifies it against the release checksums.
+For Codex, add the stable marketplace and install the plugin:
+
+```bash
+codex plugin marketplace add ChristopherLiew/agent-quorum --ref stable
+codex plugin add agent-quorum@agent-quorum-tools
+```
+
+The plugin downloads its binary on the next session start and verifies it against the release checksums. Codex loads the hooks from its compatibility manifest. Review and trust the bundled hooks in Codex before they run.
 
 - **Update:** `claude plugin update agent-quorum@agent-quorum-tools`
+- **Codex update:** `codex plugin marketplace upgrade agent-quorum-tools`
 - **Release candidates:** add the marketplace with `#latest` instead of `#stable`.
 - **Terminal CLI** (optional): the binary is installed at `~/.agent-quorum/bin/agent-quorum-<version>`. Symlink it onto your `PATH` as `agent-quorum`.
 
 ## Use
 
-Open two or more sessions in the same repository and work as usual. To see who holds what, run `/agent-quorum:status` inside Claude Code, or from a terminal:
+Open two or more sessions in the same repository and work as usual. To see who holds what, run `/agent-quorum:status` inside Claude Code, or from a terminal (Codex users can run the terminal command):
 
 ```text
 $ agent-quorum status
@@ -88,7 +96,7 @@ sequenceDiagram
 - **Fails open.** If agent-quorum is broken or missing, your agents behave as if it were not installed. It never auto-approves anything, so Claude Code's own permission prompts still apply.
 - **Privacy.** The first 80 characters of each prompt are stored locally so sessions can see what the others are working on. Nothing leaves your machine. Set `AGENT_QUORUM_NO_NOTES=1` to turn it off.
 
-Limits: it coordinates cooperating agents and is not a security boundary. Shell writes such as `sed -i` are not intercepted, edits you make in an editor are not seen, and it works on one machine for one user. Codex support is planned; today other agents are covered only by the `pre-commit` hook.
+Limits: it coordinates cooperating agents and is not a security boundary. Shell writes such as `sed -i` are not intercepted, edits you make in an editor are not seen, and it works on one machine for one user. Codex file claims cover `apply_patch`; shell writes remain outside hook coverage.
 
 ## Debugging
 
