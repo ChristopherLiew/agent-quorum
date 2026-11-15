@@ -1,8 +1,16 @@
+<p align="center">
+  <img src="plugin/.claude-plugin/icon.png" alt="agent-quorum icon" width="128" height="128">
+</p>
+
 # agent-quorum
 
 [![ci](https://github.com/ChristopherLiew/agent-quorum/actions/workflows/ci.yml/badge.svg)](https://github.com/ChristopherLiew/agent-quorum/actions/workflows/ci.yml)
 
 Local coordination for coding-agent sessions that share one working tree. When several Claude Code sessions run in the same repository, agent-quorum stops them from editing the same uncommitted file, blocks git commands that would destroy or sweep up another session's work, and tells each session who else is there. It is one Go binary plus a Claude Code plugin, runs entirely on your machine, and fails open: if it is broken or missing, your agents behave as if it were not installed.
+
+<p align="center">
+  <img src="assets/overview.svg" alt="Two agent sessions want the same file. agent-quorum lets the first edit it and blocks the second, which is told who holds the file." width="820">
+</p>
 
 ## Install
 
