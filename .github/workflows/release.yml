@@ -1,6 +1,12 @@
 name: release
+
+# A release is published when a release pull request is merged: the merge
+# changes `version` in plugin.json on main, and this workflow tags that commit
+# and publishes it. Pushing a v* tag by hand still works as a fallback.
 on:
   push:
+    branches: [main]
+    paths: ["plugin/.claude-plugin/plugin.json"]
     tags: ["v*"]
 
 permissions:
@@ -29,39 +35,59 @@ jobs:
       - name: Resolve version and channel
         id: v
         run: |
-          tag="${GITHUB_REF_NAME#v}"
           ver="$(jq -r .version plugin/.claude-plugin/plugin.json)"
-          if [ "$tag" != "$ver" ]; then
-            echo "tag v$tag does not match plugin.json version $ver" >&2
-            exit 1
-          fi
           scripts/semver.sh check "$ver"
+          if [ "$GITHUB_REF_TYPE" = tag ]; then
+            if [ "${GITHUB_REF_NAME#v}" != "$ver" ]; then
+              echo "tag $GITHUB_REF_NAME does not match plugin.json version $ver" >&2
+              exit 1
+            fi
+          elif git ls-remote --exit-code --tags origin "refs/tags/v$ver" >/dev/null; then
+            echo "v$ver is already released; nothing to do"
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
           echo "version=$ver" >> "$GITHUB_OUTPUT"
           echo "prerelease=$(scripts/semver.sh prerelease "$ver")" >> "$GITHUB_OUTPUT"
 
-      - run: make check
-      - run: make validate-plugin
-      - run: scripts/release-build.sh "${{ steps.v.outputs.version }}"
+      - if: steps.v.outputs.skip != 'true'
+        run: make check
+      - if: steps.v.outputs.skip != 'true'
+        run: make validate-plugin
+      - if: steps.v.outputs.skip != 'true'
+        run: scripts/release-build.sh "${{ steps.v.outputs.version }}"
+
+      - name: Tag the release
+        if: steps.v.outputs.skip != 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          tag="v${{ steps.v.outputs.version }}"
+          if [ "$GITHUB_REF_TYPE" != tag ]; then
+            git tag -a "$tag" -m "agent-quorum $tag"
+            git push origin "$tag"
+          fi
 
       - name: Publish GitHub release
+        if: steps.v.outputs.skip != 'true'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          tag="v${{ steps.v.outputs.version }}"
           if [ "${{ steps.v.outputs.prerelease }}" = true ]; then
-            gh release create "$GITHUB_REF_NAME" dist/* --generate-notes --verify-tag --prerelease
+            gh release create "$tag" dist/* --generate-notes --verify-tag --prerelease
           else
-            gh release create "$GITHUB_REF_NAME" dist/* --generate-notes --verify-tag --latest
+            gh release create "$tag" dist/* --generate-notes --verify-tag --latest
           fi
 
       # The <plugin>--v<version> tag is the Claude Code convention that lets
       # other plugins depend on a version range of this one.
       - name: Tag the plugin version
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          claude plugin tag ./plugin --push
+        if: steps.v.outputs.skip != 'true'
+        run: claude plugin tag ./plugin --push
 
       # Channels move only after the binaries exist, so a user on a channel
       # never sees a version whose download would fail.
       - name: Move the marketplace channel branches
+        if: steps.v.outputs.skip != 'true'
         run: scripts/publish-channels.sh "${{ steps.v.outputs.version }}" "$GITHUB_SHA"

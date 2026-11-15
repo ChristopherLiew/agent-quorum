@@ -30,7 +30,7 @@ snapshot:         ## cross-compile all release archives into ./dist
 dev: build        ## start Claude Code with the local plugin and the local binary
 	AGENT_QUORUM_BIN=$(CURDIR)/$(BIN) claude --plugin-dir ./plugin
 
-release:          ## make release V=1.2.3
+release:          ## make release V=1.2.3 (or 1.2.3-rc.1): opens the release pull request
 	@test -n "$(V)" || { echo "usage: make release V=1.2.3"; exit 1; }
 	$(MAKE) check
 	scripts/bump-version.sh $(V)
