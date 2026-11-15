@@ -1,0 +1,16 @@
+{
+  "session_id": "abc123",
+  "transcript_path": "/home/user/.claude/projects/-home-user-my-project/abc123.jsonl",
+  "cwd": "/home/user/my-project",
+  "permission_mode": "default",
+  "hook_event_name": "PreToolUse",
+  "tool_name": "NotebookEdit",
+  "tool_input": {
+    "notebook_path": "/home/user/my-project/analysis/explore.ipynb",
+    "cell_id": "cell-3",
+    "new_source": "print(1)",
+    "cell_type": "code",
+    "edit_mode": "replace"
+  },
+  "tool_use_id": "toolu_01ABC127"
+}

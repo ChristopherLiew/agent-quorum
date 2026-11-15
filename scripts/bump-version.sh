@@ -1,14 +1,11 @@
 #!/bin/sh
 # Set the plugin version, commit, and create the annotated tag that triggers
-# the release workflow. Usage: scripts/bump-version.sh 1.2.3
+# the release workflow. Usage: scripts/bump-version.sh 1.2.3 | 1.2.3-rc.1
 set -eu
 ver="${1:?usage: bump-version.sh <version without v>}"
 manifest=plugin/.claude-plugin/plugin.json
 
-case "$ver" in
-  [0-9]*.[0-9]*.[0-9]*) ;;
-  *) echo "version must look like 1.2.3" >&2; exit 1 ;;
-esac
+"${0%/*}/semver.sh" check "$ver"
 [ -z "$(git status --porcelain)" ] || { echo "working tree is dirty" >&2; exit 1; }
 
 tmp=$(mktemp)

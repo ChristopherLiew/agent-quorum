@@ -6,15 +6,28 @@ on:
 permissions:
   contents: write
 
+# One release at a time, and never cancel one halfway through publishing.
+concurrency:
+  group: release
+  cancel-in-progress: false
+
 jobs:
   release:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-go@v5
         with:
           go-version-file: go.mod
-      - name: Tag must match plugin.json
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install -g @anthropic-ai/claude-code
+
+      - name: Resolve version and channel
+        id: v
         run: |
           tag="${GITHUB_REF_NAME#v}"
           ver="$(jq -r .version plugin/.claude-plugin/plugin.json)"
@@ -22,9 +35,33 @@ jobs:
             echo "tag v$tag does not match plugin.json version $ver" >&2
             exit 1
           fi
+          scripts/semver.sh check "$ver"
+          echo "version=$ver" >> "$GITHUB_OUTPUT"
+          echo "prerelease=$(scripts/semver.sh prerelease "$ver")" >> "$GITHUB_OUTPUT"
+
       - run: make check
-      - run: scripts/release-build.sh "${GITHUB_REF_NAME#v}"
+      - run: make validate-plugin
+      - run: scripts/release-build.sh "${{ steps.v.outputs.version }}"
+
       - name: Publish GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create "$GITHUB_REF_NAME" dist/* --generate-notes --verify-tag
+        run: |
+          if [ "${{ steps.v.outputs.prerelease }}" = true ]; then
+            gh release create "$GITHUB_REF_NAME" dist/* --generate-notes --verify-tag --prerelease
+          else
+            gh release create "$GITHUB_REF_NAME" dist/* --generate-notes --verify-tag --latest
+          fi
+
+      # The <plugin>--v<version> tag is the Claude Code convention that lets
+      # other plugins depend on a version range of this one.
+      - name: Tag the plugin version
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          claude plugin tag ./plugin --push
+
+      # Channels move only after the binaries exist, so a user on a channel
+      # never sees a version whose download would fail.
+      - name: Move the marketplace channel branches
+        run: scripts/publish-channels.sh "${{ steps.v.outputs.version }}" "$GITHUB_SHA"
