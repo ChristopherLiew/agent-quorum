@@ -1,0 +1,45 @@
+name: ci
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - run: make vet
+      - run: make test
+      - run: make build
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Shell and JSON checks
+        run: make lint
+      - name: Launcher fails open without a binary
+        run: |
+          out=$(echo '{}' | AGENT_QUORUM_HOME="$(mktemp -d)" PATH="/usr/bin:/bin" plugin/scripts/agent-quorum.sh hook --agent claude)
+          test -z "$out"
+
+  plugin:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install -g @anthropic-ai/claude-code
+      - run: make validate-plugin

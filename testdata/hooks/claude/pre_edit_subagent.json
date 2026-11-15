@@ -1,0 +1,16 @@
+{
+  "session_id": "abc123",
+  "transcript_path": "/home/user/.claude/projects/-home-user-my-project/abc123.jsonl",
+  "cwd": "/home/user/my-project",
+  "permission_mode": "default",
+  "hook_event_name": "PreToolUse",
+  "agent_id": "agent-7",
+  "agent_type": "general-purpose",
+  "tool_name": "Edit",
+  "tool_input": {
+    "file_path": "/home/user/my-project/internal/auth/token.go",
+    "old_string": "a",
+    "new_string": "b"
+  },
+  "tool_use_id": "toolu_01ABC126"
+}

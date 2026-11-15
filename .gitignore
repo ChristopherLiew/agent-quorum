@@ -1,0 +1,63 @@
+# --- Build output ---
+/bin/
+/dist/
+# stray `go build ./cmd/agent-quorum` output at the repo root (anchored: cmd/agent-quorum stays tracked)
+/agent-quorum
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.a
+*.o
+
+# --- Tests, coverage, fuzzing ---
+*.test
+*.out
+coverage.*
+*.coverprofile
+*.cover
+/coverage/
+
+# --- Profiling and tracing ---
+*.prof
+*.pprof
+*.trace
+
+# --- Debugging (delve) ---
+__debug_bin*
+
+# --- Modules and workspaces ---
+# go.mod and go.sum are tracked; a vendor tree and local workspace files are not
+/vendor/
+go.work
+go.work.sum
+
+# --- Tooling caches ---
+.gocache/
+.gomodcache/
+.golangci-cache/
+# air / live reload
+/tmp/
+
+# --- Local environment ---
+.env
+.env.*
+!.env.example
+.envrc
+.direnv/
+
+# --- Editors ---
+.idea/
+*.iml
+.vscode/
+*.swp
+*.swo
+*~
+
+# --- OS ---
+.DS_Store
+Thumbs.db
+
+# --- Project ---
+docs/

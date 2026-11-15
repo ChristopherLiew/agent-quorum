@@ -1,0 +1,12 @@
+{
+  "name": "agent-quorum-tools",
+  "description": "agent-quorum: local coordination for concurrent coding-agent sessions",
+  "owner": { "name": "ChristopherLiew" },
+  "plugins": [
+    {
+      "name": "agent-quorum",
+      "source": "./plugin",
+      "description": "Stops concurrent agent sessions on one machine from editing the same files or clobbering each other's git state"
+    }
+  ]
+}
