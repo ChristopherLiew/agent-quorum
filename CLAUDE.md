@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 agent-quorum is local coordination for concurrent coding-agent sessions that share **one working tree** (no worktrees): it stops sessions from editing the same uncommitted file, blocks tree-wide git commands that would clobber another session's work, and lets sessions see each other.
 
-**Current state:** the daemon, hook client, Claude Code adapter, git guard, presence and the `check --staged` pre-commit backstop are implemented and tested (DESIGN.md milestones M1 to M6 and part of M7). Not built yet: the Codex adapter (M8), `PostToolUse` detection of shell edits, the notes mailbox and MCP server, and the mod. No release has been tagged, so the marketplace install cannot download a binary yet; `make dev` is the way to run it.
+**Current state:** the daemon, hook client, Claude Code adapter, git guard, presence and the `check --staged` pre-commit backstop are implemented and tested (DESIGN.md milestones M1 to M6 and part of M7). Not built yet: the Codex adapter (M8), `PostToolUse` detection of shell edits, the notes mailbox and MCP server, and the mod. Releases are published from tags by `release.yml`; `make dev` runs the local build.
 
 `docs/DESIGN.md` is the design rationale. Read the relevant section before changing behaviour, but the code wins where they differ (known differences: the hook budget is 1.5 s rather than 250 ms, and the project is no longer standard-library-only). `docs/` is in `.gitignore`, so the design doc is local-only and absent from a fresh clone and from CI. `README.md` is the public description; `CONTRIBUTING.md` holds the dev guide, the semantic versioning rules and the release SOP, which must be followed before any tag.
 
