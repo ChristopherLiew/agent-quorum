@@ -346,9 +346,10 @@ func TestGuard(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			env := newEnv()
 			s := newState(env)
-			if tc.holder == "a" {
+			switch tc.holder {
+			case "a":
 				do(t, s, rq(proto.OpClaim, "a", 1, tc.path))
-			} else if tc.holder == "b" {
+			case "b":
 				do(t, s, rq(proto.OpClaim, "b", 2, tc.path))
 			}
 			if tc.setup != nil {
@@ -482,8 +483,8 @@ func TestHelloContextCap(t *testing.T) {
 			if n := utf8.RuneCountInString(resp.Context); n == 0 || n > 600 {
 				t.Fatalf("len(Context) = %d chars, want 1..600: %q", n, resp.Context)
 			}
-			if !strings.Contains(resp.Context, "reset --hard") ||
-				!(strings.Contains(resp.Context, "more") || strings.Contains(resp.Context, "files")) {
+			truncated := strings.Contains(resp.Context, "more") || strings.Contains(resp.Context, "files")
+			if !strings.Contains(resp.Context, "reset --hard") || !truncated {
 				t.Errorf("Context = %q, want instructions and a truncation marker", resp.Context)
 			}
 		})

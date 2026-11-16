@@ -10,20 +10,25 @@ import (
 	"github.com/bytedance/sonic"
 )
 
+// Agent is the value of proto.Request.Agent for this adapter.
 const Agent = "codex"
 
 var plainJSON = sonic.Config{SortMapKeys: true, EscapeHTML: false, ValidateString: true}.Froze()
 
+// Event is the parsed Codex hook call.
 type Event struct {
 	HookEvent string
 	Tool      string
 	Req       proto.Request
 	HasReq    bool
 }
+
+// Output is what the hook process writes and how it exits.
 type Output struct {
 	Stdout []byte
 	Exit   int
 }
+
 type hookInput struct {
 	SessionID string                 `json:"session_id"`
 	CWD       string                 `json:"cwd"`
@@ -33,6 +38,9 @@ type hookInput struct {
 	Prompt    string                 `json:"prompt"`
 }
 
+// Parse turns one Codex hook payload into an Event. It returns an error only
+// for input that is not valid JSON. Missing sessions or unhandled events and
+// tools return HasReq false (no opinion).
 func Parse(raw []byte) (Event, error) {
 	var in hookInput
 	if err := sonic.ConfigStd.Unmarshal(raw, &in); err != nil {
@@ -122,6 +130,8 @@ type hookSpecific struct {
 	AdditionalContext        string `json:"additionalContext,omitempty"`
 }
 
+// Render turns the daemon's answer into hook output. Only a deny on
+// PreToolUse and a non-empty Context on SessionStart produce output.
 func Render(ev Event, r proto.Response) Output {
 	if !r.OK {
 		return Output{}
