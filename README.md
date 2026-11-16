@@ -88,6 +88,14 @@ Start a new session, then run `/agent-quorum:status` to check it is working.
 
 Third-party marketplaces do not auto-update by default. Turn it on under `/plugin`, or run the update command.
 
+**Optional dashboard.** A second plugin in the same marketplace adds a `/quorum` pane: an htop-style table of every live session and the files each one holds. It needs a Claude Code build with mods (hooks modules) support.
+
+```bash
+claude plugin install agent-quorum-dashboard@agent-quorum-tools
+```
+
+Open it with `/quorum`. Keys: `j`/`k` move, `r` releases the selected session's files, `c` copies its id, `esc` closes.
+
 </details>
 
 <details>

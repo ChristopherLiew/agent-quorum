@@ -61,3 +61,5 @@ Thumbs.db
 
 # --- Project ---
 docs/
+# types the Claude Code engine lays into a loaded mod
+/mod/.claude-plugin/types/

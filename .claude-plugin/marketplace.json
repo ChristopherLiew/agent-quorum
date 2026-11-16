@@ -7,6 +7,11 @@
       "name": "agent-quorum",
       "source": "./plugin",
       "description": "Stops concurrent agent sessions on one machine from editing the same files or clobbering each other's git state"
+    },
+    {
+      "name": "agent-quorum-dashboard",
+      "source": "./mod",
+      "description": "A /quorum pane in Claude Code: an htop-style table of every live agent-quorum session, with the files each one holds"
     }
   ]
 }

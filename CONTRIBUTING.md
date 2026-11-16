@@ -123,7 +123,7 @@ Do not break these. Review will check each one.
 
 Rules:
 
-- Do not edit the version in `plugin/.claude-plugin/plugin.json`, `plugin/.codex-plugin/plugin.json`, or `plugin/.antigravity-plugin/plugin.json` in an ordinary pull request. `make release` updates all three manifests together; a version change on `main` publishes a release.
+- Do not edit the version in `plugin/.claude-plugin/plugin.json`, `plugin/.codex-plugin/plugin.json`, `plugin/.antigravity-plugin/plugin.json`, or `mod/.claude-plugin/plugin.json` in an ordinary pull request. `make release` updates all four manifests together; a version change on `main` publishes a release.
 - Do not commit to `stable` or `latest`. They are channel branches moved by the release workflow.
 - Do not force-push `main` or rewrite published tags.
 
@@ -190,7 +190,7 @@ A pre-release such as `v0.2.0-rc.1` precedes `v0.2.0` in precedence and means "c
 
 ### Where the version lives
 
-- `plugin/.claude-plugin/plugin.json` `version` is the source of truth; `plugin/.codex-plugin/plugin.json` and `plugin/.antigravity-plugin/plugin.json` mirror it. Only a release pull request, opened by `make release`, edits these fields.
+- `plugin/.claude-plugin/plugin.json` `version` is the source of truth; `plugin/.codex-plugin/plugin.json`, `plugin/.antigravity-plugin/plugin.json` and `mod/.claude-plugin/plugin.json` mirror it. Only a release pull request, opened by `make release`, edits these fields.
 - The git tag is `v<version>`, annotated, created by the release workflow on the merge commit. Nobody tags by hand in the normal flow.
 - Binaries are stamped at build time with `-ldflags "-X main.version=<version>"`. `scripts/release-build.sh` stamps the exact version; `make build` stamps `<version>-dev`. An unstamped `go build` reports `dev`.
 - Claude Code users stay on their cached copy of a plugin until the `version` string changes, so a release is a version bump or it is nothing.
