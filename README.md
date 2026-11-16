@@ -285,7 +285,7 @@ agent-quorum coordinates cooperating agents and is not a security boundary.
 | A file is still held just after it was committed | Expected for 120 seconds. Wait, or release it by hand. |
 | Why was something denied? | `~/.agent-quorum/daemon.log` records every deny with the session and reason. |
 | Did the hooks run? (Claude Code) | Start with `claude --debug-file /tmp/cc.log` and search for lines starting `Hooks:`. |
-| Did the hooks run? (OpenCode) | Run `AGENT_QUORUM_CAPTURE=/tmp/aq.jsonl opencode run --standalone "..."`; every event the plugin forwards is appended to that file. A shared background service only sees variables it was started with. |
+| Did the hooks run? (OpenCode) | Run `AGENT_QUORUM_CAPTURE=/tmp/aq.jsonl opencode run --standalone "..."`; every event the plugin forwards is appended to that file. For the shared background service, set it with `opencode service set env AGENT_QUORUM_CAPTURE /tmp/aq.jsonl` and `opencode service restart`, and `unset` it afterwards. |
 | Odd behaviour after an upgrade | `agent-quorum stop`. The next hook starts the new version. |
 
 Still stuck? [Open an issue](https://github.com/ChristopherLiew/agent-quorum/issues) with your OS, agent and version, and the relevant lines from `daemon.log`.
