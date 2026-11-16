@@ -1,66 +1,92 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 330" width="960" height="330" role="img" aria-label="Two agent sessions want the same file. agent-quorum lets the first edit it and blocks the second, which is told who holds the file.">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 360" width="960" height="360" role="img" aria-label="A Claude Code session and a Codex session want the same file. agent-quorum lets the first edit it and blocks the second, which is told who holds the file.">
   <style>
     text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; }
-    .title { font-size: 19px; font-weight: 600; fill: #f1f5f9; }
-    .sub { font-size: 14.5px; fill: #94a3b8; }
-    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 14px; }
-    .wire { stroke: #475569; stroke-width: 3; fill: none; stroke-linecap: round; }
+    .eyebrow { font-size: 11px; font-weight: 700; letter-spacing: 1.6px; }
+    .title { font-size: 19px; font-weight: 600; fill: #fafafa; }
+    .sub { font-size: 14px; fill: #a1a1aa; }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 13.5px; fill: #e4e4e7; }
+    .wire { stroke-width: 2.5; fill: none; stroke-linecap: round; }
   </style>
   <defs>
-    <marker id="tip" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto">
-      <path d="M1 1 L9 5 L1 9" fill="none" stroke="#475569" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#09090b"/>
+      <stop offset="1" stop-color="#141416"/>
+    </linearGradient>
+    <radialGradient id="glow">
+      <stop offset="0" stop-color="#2dd4bf" stop-opacity="0.22"/>
+      <stop offset="1" stop-color="#2dd4bf" stop-opacity="0"/>
+    </radialGradient>
+    <pattern id="dots" width="22" height="22" patternUnits="userSpaceOnUse">
+      <circle cx="2" cy="2" r="1" fill="#232326"/>
+    </pattern>
+    <marker id="tip-teal" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M1 1 L9 5 L1 9" fill="none" stroke="#2dd4bf" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </marker>
+    <marker id="tip-slate" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M1 1 L9 5 L1 9" fill="none" stroke="#71717a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </marker>
+    <marker id="tip-red" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M1 1 L9 5 L1 9" fill="none" stroke="#f87171" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
     </marker>
   </defs>
 
-  <rect width="960" height="330" rx="22" fill="#111827"/>
+  <rect width="960" height="360" rx="22" fill="url(#bg)"/>
+  <rect width="960" height="360" rx="22" fill="url(#dots)"/>
 
   <!-- Session A -->
-  <rect x="36" y="48" width="262" height="96" rx="16" fill="#1e293b" stroke="#2dd4bf" stroke-width="2"/>
-  <rect x="58" y="74" width="44" height="34" rx="7" fill="none" stroke="#2dd4bf" stroke-width="2.5"/>
-  <path d="M68 85 l8 6 l-8 6 M82 98 h10" fill="none" stroke="#2dd4bf" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-  <text x="120" y="88" class="title">Session A</text>
-  <text x="120" y="112" class="sub">edits <tspan class="mono" fill="#e2e8f0">auth.go</tspan></text>
+  <rect x="36" y="56" width="270" height="100" rx="16" fill="#18181b" stroke="#2dd4bf" stroke-width="2"/>
+  <rect x="58" y="86" width="44" height="34" rx="7" fill="none" stroke="#2dd4bf" stroke-width="2.5"/>
+  <path d="M68 97 l8 6 l-8 6 M82 110 h10" fill="none" stroke="#2dd4bf" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="120" y="84" class="eyebrow" fill="#2dd4bf">SESSION A</text>
+  <text x="120" y="108" class="title">Claude Code</text>
+  <text x="120" y="132" class="sub">edits <tspan class="mono">auth.go</tspan></text>
 
   <!-- Session B -->
-  <rect x="36" y="186" width="262" height="96" rx="16" fill="#1e293b" stroke="#94a3b8" stroke-width="2"/>
-  <rect x="58" y="212" width="44" height="34" rx="7" fill="none" stroke="#94a3b8" stroke-width="2.5"/>
-  <path d="M68 223 l8 6 l-8 6 M82 236 h10" fill="none" stroke="#94a3b8" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-  <text x="120" y="226" class="title">Session B</text>
-  <text x="120" y="250" class="sub">wants <tspan class="mono" fill="#e2e8f0">auth.go</tspan> too</text>
+  <rect x="36" y="204" width="270" height="100" rx="16" fill="#18181b" stroke="#71717a" stroke-width="2"/>
+  <rect x="58" y="234" width="44" height="34" rx="7" fill="none" stroke="#a1a1aa" stroke-width="2.5"/>
+  <path d="M68 245 l8 6 l-8 6 M82 258 h10" fill="none" stroke="#a1a1aa" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="120" y="232" class="eyebrow" fill="#a1a1aa">SESSION B</text>
+  <text x="120" y="256" class="title">Codex</text>
+  <text x="120" y="280" class="sub">wants <tspan class="mono">auth.go</tspan> too</text>
 
   <!-- wires in -->
-  <path class="wire" d="M298 96 C350 96 360 150 410 158" marker-end="url(#tip)"/>
-  <path class="wire" d="M298 234 C350 234 360 180 410 172" marker-end="url(#tip)"/>
+  <path class="wire" stroke="#2dd4bf" stroke-opacity="0.8" d="M306 106 C358 106 362 166 406 172" marker-end="url(#tip-teal)"/>
+  <path class="wire" stroke="#71717a" d="M306 254 C358 254 362 194 406 188" marker-end="url(#tip-slate)"/>
 
   <!-- agent-quorum -->
-  <circle cx="480" cy="165" r="68" fill="#0b1220" stroke="#334155" stroke-width="2"/>
-  <g stroke="#475569" stroke-width="5" stroke-linecap="round">
-    <line x1="480" y1="128" x2="448" y2="188"/>
-    <line x1="480" y1="128" x2="512" y2="188"/>
-    <line x1="448" y1="188" x2="512" y2="188"/>
+  <circle cx="480" cy="180" r="130" fill="url(#glow)"/>
+  <circle cx="480" cy="180" r="68" fill="#09090b" stroke="#3f3f46" stroke-width="2"/>
+  <g transform="translate(480 180) scale(0.15) translate(-512 -512)">
+    <g stroke="#3f3f46" stroke-width="30" stroke-linecap="round">
+      <line x1="512" y1="267" x2="300" y2="634"/>
+      <line x1="512" y1="267" x2="724" y2="634"/>
+      <line x1="300" y1="634" x2="724" y2="634"/>
+    </g>
+    <circle cx="512" cy="267" r="74" fill="#fafafa"/>
+    <circle cx="300" cy="634" r="74" fill="#fafafa"/>
+    <circle cx="724" cy="634" r="58" fill="#09090b" stroke="#71717a" stroke-width="32"/>
+    <path d="M448 516 L494 562 L578 468" fill="none" stroke="#fafafa" stroke-width="40" stroke-linecap="round" stroke-linejoin="round"/>
   </g>
-  <circle cx="480" cy="128" r="15" fill="#2dd4bf"/>
-  <circle cx="448" cy="188" r="15" fill="#2dd4bf"/>
-  <circle cx="512" cy="188" r="13" fill="#0b1220" stroke="#94a3b8" stroke-width="4"/>
-  <path d="M468 167 l9 9 l15 -18" fill="none" stroke="#f1f5f9" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
-  <text x="480" y="262" text-anchor="middle" class="title">agent-quorum</text>
-  <text x="480" y="284" text-anchor="middle" class="sub">one holder per file</text>
+  <text x="480" y="284" text-anchor="middle" class="title">agent-quorum</text>
+  <text x="480" y="306" text-anchor="middle" class="sub">one holder per file</text>
 
   <!-- wires out -->
-  <path class="wire" d="M550 158 C600 150 610 96 656 96" marker-end="url(#tip)"/>
-  <path class="wire" d="M550 172 C600 180 610 234 656 234" marker-end="url(#tip)"/>
+  <path class="wire" stroke="#2dd4bf" stroke-opacity="0.8" d="M554 172 C598 166 602 106 648 106" marker-end="url(#tip-teal)"/>
+  <path class="wire" stroke="#f87171" stroke-opacity="0.8" d="M554 188 C598 194 602 254 648 254" marker-end="url(#tip-red)"/>
 
   <!-- allowed -->
-  <rect x="662" y="48" width="262" height="96" rx="16" fill="#0f2a27" stroke="#2dd4bf" stroke-width="2"/>
-  <circle cx="702" cy="96" r="20" fill="#2dd4bf"/>
-  <path d="M692 97 l7 7 l12 -14" fill="none" stroke="#0f2a27" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
-  <text x="736" y="90" class="title">Edit goes ahead</text>
-  <text x="736" y="113" class="sub">A now holds the file</text>
+  <rect x="654" y="56" width="270" height="100" rx="16" fill="#0f2a27" stroke="#2dd4bf" stroke-width="2"/>
+  <circle cx="694" cy="106" r="20" fill="#2dd4bf"/>
+  <path d="M684 107 l7 7 l12 -14" fill="none" stroke="#0f2a27" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="728" y="84" class="eyebrow" fill="#2dd4bf">ALLOWED</text>
+  <text x="728" y="108" class="title">Edit goes ahead</text>
+  <text x="728" y="132" class="sub">A now holds the file</text>
 
-  <!-- blocked -->
-  <rect x="662" y="186" width="262" height="96" rx="16" fill="#2a1418" stroke="#f87171" stroke-width="2"/>
-  <circle cx="702" cy="234" r="20" fill="#f87171"/>
-  <path d="M694 226 l16 16 M710 226 l-16 16" fill="none" stroke="#2a1418" stroke-width="4.5" stroke-linecap="round"/>
-  <text x="736" y="228" class="title">Edit blocked</text>
-  <text x="736" y="251" class="sub">told A holds it, moves on</text>
+  <!-- denied -->
+  <rect x="654" y="204" width="270" height="100" rx="16" fill="#2a1418" stroke="#f87171" stroke-width="2"/>
+  <circle cx="694" cy="254" r="20" fill="#f87171"/>
+  <path d="M686 246 l16 16 M702 246 l-16 16" fill="none" stroke="#2a1418" stroke-width="4.5" stroke-linecap="round"/>
+  <text x="728" y="232" class="eyebrow" fill="#f87171">DENIED</text>
+  <text x="728" y="256" class="title">Edit blocked</text>
+  <text x="728" y="280" class="sub">told who holds it, moves on</text>
 </svg>

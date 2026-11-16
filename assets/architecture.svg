@@ -1,0 +1,109 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 384" width="960" height="384" role="img" aria-label="Claude Code, Codex, Antigravity and OpenCode call agent-quorum hook before edits and git commands. The hook sends one request over a Unix socket to the agent-quorum daemon, which tracks sessions and claims, guards git commands, checks git status and snapshots its state to state.json, and returns no opinion or a deny with a reason.">
+  <style>
+    text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; }
+    .eyebrow { font-size: 11px; font-weight: 700; letter-spacing: 1.6px; }
+    .title { font-size: 18px; font-weight: 600; fill: #fafafa; }
+    .row { font-size: 15px; font-weight: 600; fill: #fafafa; }
+    .sub { font-size: 13px; fill: #a1a1aa; }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px; fill: #d4d4d8; }
+    .monot { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 16px; font-weight: 600; fill: #fafafa; }
+    .label { font-size: 12.5px; font-weight: 600; fill: #a1a1aa; }
+    .wire { stroke: #52525b; stroke-width: 2.5; fill: none; stroke-linecap: round; }
+  </style>
+  <defs>
+    <linearGradient id="abg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#09090b"/>
+      <stop offset="1" stop-color="#141416"/>
+    </linearGradient>
+    <pattern id="adots" width="22" height="22" patternUnits="userSpaceOnUse">
+      <circle cx="2" cy="2" r="1" fill="#232326"/>
+    </pattern>
+    <marker id="atip" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M1 1 L9 5 L1 9" fill="none" stroke="#71717a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </marker>
+    <marker id="atip-teal" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto">
+      <path d="M1 1 L9 5 L1 9" fill="none" stroke="#2dd4bf" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </marker>
+  </defs>
+
+  <rect width="960" height="384" rx="22" fill="url(#abg)"/>
+  <rect width="960" height="384" rx="22" fill="url(#adots)"/>
+
+  <!-- agents -->
+  <text x="36" y="34" class="eyebrow" fill="#71717a">AGENT SESSIONS</text>
+  <g>
+    <rect x="32" y="44" width="236" height="64" rx="14" fill="#18181b" stroke="#3f3f46" stroke-width="1.5"/>
+    <rect x="32" y="56" width="4" height="40" rx="2" fill="#2dd4bf"/>
+    <text x="52" y="71" class="title">Claude Code</text>
+    <text x="52" y="93" class="mono">Edit · Write · Bash(git)</text>
+  </g>
+  <g>
+    <rect x="32" y="118" width="236" height="64" rx="14" fill="#18181b" stroke="#3f3f46" stroke-width="1.5"/>
+    <rect x="32" y="130" width="4" height="40" rx="2" fill="#a78bfa"/>
+    <text x="52" y="145" class="title">Codex</text>
+    <text x="52" y="167" class="mono">apply_patch · Bash</text>
+  </g>
+  <g>
+    <rect x="32" y="192" width="236" height="64" rx="14" fill="#18181b" stroke="#3f3f46" stroke-width="1.5"/>
+    <rect x="32" y="204" width="4" height="40" rx="2" fill="#60a5fa"/>
+    <text x="52" y="219" class="title">Antigravity</text>
+    <text x="52" y="241" class="mono">write_to_file · run_command</text>
+  </g>
+  <g>
+    <rect x="32" y="266" width="236" height="64" rx="14" fill="#18181b" stroke="#3f3f46" stroke-width="1.5"/>
+    <rect x="32" y="278" width="4" height="40" rx="2" fill="#fbbf24"/>
+    <text x="52" y="293" class="title">OpenCode</text>
+    <text x="52" y="315" class="mono">edit · shell, via TS shim</text>
+  </g>
+
+  <!-- agents to hook -->
+  <path class="wire" d="M268 76 C304 76 300 168 334 168" marker-end="url(#atip)"/>
+  <path class="wire" d="M268 150 C304 150 300 182 334 182" marker-end="url(#atip)"/>
+  <path class="wire" d="M268 224 C304 224 300 196 334 196" marker-end="url(#atip)"/>
+  <path class="wire" d="M268 298 C304 298 300 210 334 210" marker-end="url(#atip)"/>
+
+  <!-- hook client -->
+  <rect x="340" y="124" width="204" height="128" rx="16" fill="#18181b" stroke="#71717a" stroke-width="2"/>
+  <text x="360" y="152" class="eyebrow" fill="#a1a1aa">EVERY HOOK CALL</text>
+  <text x="360" y="180" class="monot">agent-quorum hook</text>
+  <text x="360" y="208" class="sub">stateless, exits in &lt; 1.5 s</text>
+  <text x="360" y="230" class="sub">fails open on any error</text>
+
+  <!-- request / verdict -->
+  <path class="wire" d="M548 172 L650 172" marker-end="url(#atip)"/>
+  <path class="wire" stroke="#2dd4bf" stroke-opacity="0.8" d="M654 204 L552 204" marker-end="url(#atip-teal)"/>
+  <text x="600" y="160" text-anchor="middle" class="label">request</text>
+  <text x="600" y="226" text-anchor="middle" class="label">verdict</text>
+  <text x="600" y="190" text-anchor="middle" class="mono"  style="fill:#71717a">unix socket</text>
+
+  <!-- daemon -->
+  <rect x="660" y="48" width="268" height="248" rx="16" fill="#0f2a27" stroke="#2dd4bf" stroke-width="2"/>
+  <text x="680" y="76" class="eyebrow" fill="#2dd4bf">ONE DAEMON PER USER</text>
+  <text x="680" y="102" class="monot">agent-quorum serve</text>
+
+  <rect x="676" y="118" width="236" height="50" rx="10" fill="#09090b" fill-opacity="0.55"/>
+  <circle cx="696" cy="143" r="6" fill="#2dd4bf"/>
+  <text x="714" y="139" class="row">Sessions</text>
+  <text x="714" y="158" class="sub">who is alive, working on what</text>
+
+  <rect x="676" y="176" width="236" height="50" rx="10" fill="#09090b" fill-opacity="0.55"/>
+  <circle cx="696" cy="201" r="6" fill="#2dd4bf"/>
+  <text x="714" y="197" class="row">Claims</text>
+  <text x="714" y="216" class="sub">one holder per file</text>
+
+  <rect x="676" y="234" width="236" height="50" rx="10" fill="#09090b" fill-opacity="0.55"/>
+  <circle cx="696" cy="259" r="6" fill="#f87171"/>
+  <text x="714" y="255" class="row">Git guard</text>
+  <text x="714" y="274" class="sub">stash, checkout, add -A, …</text>
+
+  <!-- daemon side effects -->
+  <path d="M724 296 L724 326" stroke="#52525b" stroke-width="2" stroke-dasharray="4 5" fill="none"/>
+  <path d="M864 296 L864 326" stroke="#52525b" stroke-width="2" stroke-dasharray="4 5" fill="none"/>
+  <rect x="660" y="326" width="128" height="36" rx="18" fill="#18181b" stroke="#3f3f46" stroke-width="1.5"/>
+  <text x="724" y="349" text-anchor="middle" class="mono">state.json</text>
+  <rect x="800" y="326" width="128" height="36" rx="18" fill="#18181b" stroke="#3f3f46" stroke-width="1.5"/>
+  <text x="864" y="349" text-anchor="middle" class="mono">git status</text>
+
+  <!-- footnote -->
+  <text x="36" y="360" class="sub">Verdict is empty (no opinion) or a deny with a reason. Never an auto-approve.</text>
+</svg>

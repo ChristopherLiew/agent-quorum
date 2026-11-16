@@ -10,6 +10,7 @@ import (
 	"github.com/ChristopherLiew/agent-quorum/internal/adapter/antigravity"
 	"github.com/ChristopherLiew/agent-quorum/internal/adapter/claude"
 	"github.com/ChristopherLiew/agent-quorum/internal/adapter/codex"
+	"github.com/ChristopherLiew/agent-quorum/internal/adapter/opencode"
 	"github.com/ChristopherLiew/agent-quorum/internal/client"
 	"github.com/ChristopherLiew/agent-quorum/internal/proto"
 )
@@ -47,26 +48,19 @@ func runHook(args []string, stdin io.Reader, stdout io.Writer) (code int) {
 	payload, _ := io.ReadAll(io.LimitReader(stdin, 8<<20))
 	capture(payload)
 
-	if agent == "codex" {
-		out := hookCodex(payload)
-		if len(out) > 0 {
-			_, _ = stdout.Write(out)
-		}
-		return 0
+	// Built per call, not at package level: tests swap the hook variables.
+	hooks := map[string]func([]byte) []byte{
+		"claude":      hookClaude,
+		"codex":       hookCodex,
+		"antigravity": hookAntigravity,
+		"opencode":    hookOpenCode,
 	}
-	if agent == "antigravity" {
-		out := hookAntigravity(payload)
-		if len(out) > 0 {
-			_, _ = stdout.Write(out)
-		}
-		return 0
-	}
-	if agent != "claude" {
+	hook, ok := hooks[agent]
+	if !ok {
 		return 0 // no adapter for this agent yet
 	}
-	out := hookClaude(payload)
-	if len(out) > 0 {
-		// Nowhere to report a broken stdout; the hook fails open anyway.
+	// Nowhere to report a broken stdout; the hook fails open anyway.
+	if out := hook(payload); len(out) > 0 {
 		_, _ = stdout.Write(out)
 	}
 	return 0
@@ -77,20 +71,8 @@ var hookCodex = func(payload []byte) []byte {
 	if err != nil || !ev.HasReq {
 		return nil
 	}
-	req := ev.Req
-	if req.Op == proto.OpNote && os.Getenv("AGENT_QUORUM_NO_NOTES") == "1" {
-		return nil
-	}
-	req.PID = agentPID()
-	for i, p := range req.Paths {
-		req.Paths[i] = client.NormalizePath(p)
-	}
-	timeout := hookTimeout
-	if req.Op == proto.OpBye {
-		timeout = byeTimeout
-	}
-	resp, err := client.Do(req, client.Options{Timeout: timeout, Start: req.Op != proto.OpBye && os.Getenv("AGENT_QUORUM_NO_START") != "1"})
-	if err != nil {
+	resp, ok := ask(ev.Req, agentPID())
+	if !ok {
 		return nil
 	}
 	return codex.Render(ev, resp).Stdout
@@ -101,23 +83,23 @@ var hookAntigravity = func(payload []byte) []byte {
 	if err != nil || !ev.HasReq {
 		return nil
 	}
-	req := ev.Req
-	if req.Op == proto.OpNote && os.Getenv("AGENT_QUORUM_NO_NOTES") == "1" {
-		return nil
-	}
-	req.PID = agentPID()
-	for i, p := range req.Paths {
-		req.Paths[i] = client.NormalizePath(p)
-	}
-	timeout := hookTimeout
-	if req.Op == proto.OpBye {
-		timeout = byeTimeout
-	}
-	resp, err := client.Do(req, client.Options{Timeout: timeout, Start: req.Op != proto.OpBye && os.Getenv("AGENT_QUORUM_NO_START") != "1"})
-	if err != nil {
+	resp, ok := ask(ev.Req, agentPID())
+	if !ok {
 		return nil
 	}
 	return antigravity.Render(ev, resp).Stdout
+}
+
+var hookOpenCode = func(payload []byte) []byte {
+	ev, err := opencode.Parse(payload)
+	if err != nil || !ev.HasReq {
+		return nil
+	}
+	resp, ok := ask(ev.Req, ev.PID)
+	if !ok {
+		return nil
+	}
+	return opencode.Render(ev, resp).Stdout
 }
 
 // hookClaude is swapped in tests to prove that a panicking adapter fails open.
@@ -126,11 +108,26 @@ var hookClaude = func(payload []byte) []byte {
 	if err != nil || !ev.HasReq {
 		return nil
 	}
-	req := ev.Req
-	if req.Op == proto.OpNote && os.Getenv("AGENT_QUORUM_NO_NOTES") == "1" {
+	resp, ok := ask(ev.Req, agentPID())
+	if !ok {
 		return nil
 	}
-	req.PID = agentPID()
+	return claude.Render(ev, resp).Stdout
+}
+
+// ask sends an adapter's request to the daemon with the impure fields filled
+// in: the agent pid (0 when unknown) and normalized paths. It reports false when the hook
+// should stay silent, either because notes are disabled or because the daemon
+// could not be reached in time.
+func ask(req proto.Request, pid int) (proto.Response, bool) {
+	if os.Getenv("AGENT_QUORUM_NO_NOTES") == "1" {
+		// Adapters that register on every prompt send the note with hello.
+		if req.Op == proto.OpNote {
+			return proto.Response{}, false
+		}
+		req.Note = ""
+	}
+	req.PID = pid
 	for i, p := range req.Paths {
 		req.Paths[i] = client.NormalizePath(p)
 	}
@@ -144,9 +141,9 @@ var hookClaude = func(payload []byte) []byte {
 		Start: req.Op != proto.OpBye && os.Getenv("AGENT_QUORUM_NO_START") != "1",
 	})
 	if err != nil {
-		return nil
+		return proto.Response{}, false
 	}
-	return claude.Render(ev, resp).Stdout
+	return resp, true
 }
 
 // agentPID is the pid of the agent process that ran this hook. The plugin's

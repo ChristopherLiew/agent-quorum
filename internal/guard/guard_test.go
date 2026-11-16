@@ -116,6 +116,7 @@ func TestClassify(t *testing.T) {
 		{cmd: `bash -c "git stash"`, want: R},
 		{cmd: `sh -c 'git add -A'`, want: S},
 		{cmd: `bash -lc 'cd x && git reset --hard'`, want: R},
+		{cmd: "cd sub\ngit stash", want: R}, // OpenCode resources joined by the adapter
 		{cmd: `bash -c "echo git stash"`, want: N},
 		{cmd: `bash script.sh -c "git stash"`, want: N},
 		{cmd: `eval "git stash"`, want: R},

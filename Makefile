@@ -16,6 +16,7 @@ vet:
 lint:             ## shell + JSON checks (shellcheck is optional locally, required in CI)
 	@for f in plugin/scripts/*.sh scripts/*.sh; do sh -n "$$f" || exit 1; done
 	@command -v shellcheck >/dev/null && shellcheck plugin/scripts/*.sh scripts/*.sh || echo "shellcheck not installed, skipped"
+	@if command -v bun >/dev/null; then bun build --no-bundle plugin/opencode/index.ts >/dev/null; else echo "bun not installed, OpenCode plugin syntax check skipped"; fi
 	@jq empty .claude-plugin/marketplace.json plugin/.claude-plugin/plugin.json plugin/.codex-plugin/plugin.json plugin/.antigravity-plugin/plugin.json plugin/hooks/hooks.json plugin/hooks/codex.json plugin/hooks.json
 	@jq -e -s '.[0].version == .[1].version and .[0].version == .[2].version' plugin/.claude-plugin/plugin.json plugin/.codex-plugin/plugin.json plugin/.antigravity-plugin/plugin.json >/dev/null
 

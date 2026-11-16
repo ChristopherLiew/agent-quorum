@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 agent-quorum is local coordination for concurrent coding-agent sessions that share **one working tree** (no worktrees): it stops sessions from editing the same uncommitted file, blocks tree-wide git commands that would clobber another session's work, and lets sessions see each other.
 
-**Current state:** the daemon, hook client, Claude Code, Codex and Antigravity adapters, git guard, presence and the `check --staged` pre-commit backstop are implemented. Codex hooks cover lifecycle registration, prompt notes, Bash guards and `apply_patch` claims. Antigravity hooks register sessions, refresh peer context on prompts, guard `run_command`, and claim paths for native file write/edit tools. `PostToolUse` detection of shell edits, the notes mailbox and MCP server, and the mod are not built. Releases are published from tags by `release.yml`; `make dev` runs the local build.
+**Current state:** the daemon, hook client, Claude Code, Codex, Antigravity and OpenCode adapters, git guard, presence and the `check --staged` pre-commit backstop are implemented. Codex hooks cover lifecycle registration, prompt notes, Bash guards and `apply_patch` claims. Antigravity hooks register sessions, refresh peer context on prompts, guard `run_command`, and claim paths for native file write/edit tools. OpenCode uses a TypeScript shim (`plugin/opencode/index.ts`) that forwards prompt and permission-evaluate events to `hook --agent opencode` as bridge JSON; the Go adapter owns the bridge schema. `PostToolUse` detection of shell edits, the notes mailbox and MCP server, and the mod are not built. Releases are published from tags by `release.yml`; `make dev` runs the local build.
 
 `docs/DESIGN.md` is the design rationale. Read the relevant section before changing behaviour, but the code wins where they differ (known differences: the hook budget is 1.5 s rather than 250 ms, and the project is no longer standard-library-only). `docs/` is in `.gitignore`, so the design doc is local-only and absent from a fresh clone and from CI. `README.md` is the public description; `CONTRIBUTING.md` holds the dev guide, the semantic versioning rules and the release SOP, which must be followed before any tag.
 
@@ -54,6 +54,7 @@ internal/guard/            Classify(command) Risk
 internal/adapter/claude/   Parse, Render
 internal/adapter/codex/    Parse, Render
 internal/adapter/antigravity/ Parse, Render
+internal/adapter/opencode/  Parse, Render (bridge events from plugin/opencode/index.ts)
 internal/daemon/           socket server, lock, snapshot, real Env
 internal/client/           dial, start-on-demand, deadlines
 internal/gitx/             thin wrappers over the git CLI
@@ -88,6 +89,7 @@ The repo root is both a Claude Code and Codex marketplace (`.claude-plugin/marke
 - The plugin ships shell scripts only, in `scripts/` (a top-level `bin/` is rejected by claude.ai and Cowork). The binary is downloaded from GitHub Releases to `~/.agent-quorum/bin/agent-quorum-<version>` by `install.sh`, with checksum verification and an atomic move.
 - Every hook goes through `plugin/scripts/agent-quorum.sh`, which resolves `$AGENT_QUORUM_BIN`, then the versioned installed binary, then `agent-quorum` on `PATH`, and exits 0 if none exists.
 - Codex hooks are declared by `plugin/.codex-plugin/plugin.json` and `plugin/hooks/codex.json`; use `${PLUGIN_ROOT}` for plugin files and keep Codex hook payload translation in `internal/adapter/codex`.
+- OpenCode loads `plugin/opencode/index.ts` directly (Bun, no build, no dependencies). It reports the session's liveness pid in the bridge event (0 under OpenCode's shared background service, which outlives sessions), so `hook --agent opencode` uses that instead of `getppid()`.
 - Antigravity hooks are declared by `plugin/.antigravity-plugin/plugin.json` and `plugin/hooks.json`; keep Antigravity payload translation in `internal/adapter/antigravity` and validate the package with `make validate-antigravity-plugin` when `agy` is available.
 - Hooks use exec form (`args` present) and the launcher uses `exec`, so that `getppid()` in the binary is the agent process. Liveness detection depends on this; do not insert a shell between them.
 - Hooks for one event run in parallel, so install-then-register on `SessionStart` is one script (`session-start.sh`), not two hooks.
