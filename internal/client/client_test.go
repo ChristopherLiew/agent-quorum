@@ -345,17 +345,15 @@ func TestConcurrentStartOneDaemon(t *testing.T) {
 	resps := make([]proto.Response, n)
 	errs := make([]error, n)
 	var wg sync.WaitGroup
-	for i := 0; i < n; i++ {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+	for i := range n {
+		wg.Go(func() {
 			resps[i], errs[i] = Do(proto.Request{Op: proto.OpNote}, o)
-		}()
+		})
 	}
 	wg.Wait()
 	t.Cleanup(func() { stopDaemons(t, home, resps[0].Context, resps[1].Context) })
 
-	for i := 0; i < n; i++ {
+	for i := range n {
 		if errs[i] != nil || !resps[i].OK {
 			t.Fatalf("Do(note) call %d = %+v, %v, want OK and nil error", i, resps[i], errs[i])
 		}

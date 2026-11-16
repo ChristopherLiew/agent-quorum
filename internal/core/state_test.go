@@ -9,6 +9,8 @@ import (
 	"time"
 	"unicode/utf8"
 
+	"github.com/bytedance/gg/gslice"
+
 	"github.com/ChristopherLiew/agent-quorum/internal/guard"
 	"github.com/ChristopherLiew/agent-quorum/internal/proto"
 )
@@ -231,22 +233,15 @@ func TestPathsAreCleaned(t *testing.T) {
 func TestConcurrentClaimsOneGrant(t *testing.T) {
 	env := newEnv()
 	s := newState(env)
+	resps := make([]proto.Response, 100)
 	var wg sync.WaitGroup
-	var mu sync.Mutex
-	grants := 0
-	for i := 0; i < 100; i++ {
-		wg.Add(1)
-		go func(i int) {
-			defer wg.Done()
-			resp := s.Handle(rq(proto.OpClaim, fmt.Sprintf("s%d", i), 1000+i, "/repo/hot.go"))
-			if resp.OK && resp.Decision == proto.Grant {
-				mu.Lock()
-				grants++
-				mu.Unlock()
-			}
-		}(i)
+	for i := range resps {
+		wg.Go(func() {
+			resps[i] = s.Handle(rq(proto.OpClaim, fmt.Sprintf("s%d", i), 1000+i, "/repo/hot.go"))
+		})
 	}
 	wg.Wait()
+	grants := gslice.CountBy(resps, func(r proto.Response) bool { return r.OK && r.Decision == proto.Grant })
 	if grants != 1 {
 		t.Fatalf("grants = %d, want 1", grants)
 	}
