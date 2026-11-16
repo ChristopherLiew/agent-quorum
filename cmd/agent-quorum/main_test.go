@@ -73,6 +73,43 @@ func TestHookPanicFailsOpen(t *testing.T) {
 	if code := run([]string{"hook", "--agent", "antigravity"}, strings.NewReader(`{}`), &out, &errb); code != 0 || out.Len() != 0 {
 		t.Fatalf("run(hook, panicking antigravity adapter) = %d, stdout %q, want 0 and empty", code, out.String())
 	}
+
+	origOpenCode := hookOpenCode
+	t.Cleanup(func() { hookOpenCode = origOpenCode })
+	hookOpenCode = func([]byte) []byte { panic("boom") }
+	out.Reset()
+	errb.Reset()
+	if code := run([]string{"hook", "--agent", "opencode"}, strings.NewReader(`{}`), &out, &errb); code != 0 || out.Len() != 0 {
+		t.Fatalf("run(hook, panicking opencode adapter) = %d, stdout %q, want 0 and empty", code, out.String())
+	}
+}
+
+func TestHookOpenCodeFailsOpen(t *testing.T) {
+	t.Setenv("AGENT_QUORUM_HOME", shortTemp(t))
+	t.Setenv("AGENT_QUORUM_NO_START", "1")
+	cases := map[string]string{
+		"no session":   `{"event":"permission","action":"edit","resources":["/tmp/x.go"]}`,
+		"no daemon":    `{"event":"permission","session_id":"s1","directory":"/tmp","action":"edit","resources":["/tmp/x.go"]}`,
+		"invalid json": `{"event":`,
+		"empty":        ``,
+		"read action":  `{"event":"permission","session_id":"s1","directory":"/tmp","action":"read","resources":["x.go"]}`,
+		"wrong types":  `{"event":["x"],"session_id":42,"resources":"nope"}`,
+	}
+	for name, in := range cases {
+		t.Run(name, func(t *testing.T) {
+			var out, errb bytes.Buffer
+			start := time.Now()
+			if code := run([]string{"hook", "--agent", "opencode"}, strings.NewReader(in), &out, &errb); code != 0 {
+				t.Errorf("run(hook --agent opencode %s) = %d, want 0", name, code)
+			}
+			if out.Len() != 0 {
+				t.Errorf("run(hook --agent opencode %s) stdout = %q, want empty", name, out.String())
+			}
+			if d := time.Since(start); d > 400*time.Millisecond {
+				t.Errorf("run(hook --agent opencode %s) took %v, want <= 400ms", name, d)
+			}
+		})
+	}
 }
 
 func TestHookAntigravityFailsOpen(t *testing.T) {
@@ -360,6 +397,81 @@ func TestEndToEnd(t *testing.T) {
 	st, _ = e.cli(nil, "status")
 	if strings.Contains(st, "claude:") {
 		t.Fatalf("status after SessionEnd = %q, want no sessions", st)
+	}
+}
+
+// openCode sends one bridge event as the OpenCode plugin would, with pid as
+// the process that bounds the session (0 for a shared OpenCode service).
+func (e *e2e) openCode(sid string, pid int, event map[string]any) string {
+	e.t.Helper()
+	event["session_id"] = sid
+	event["directory"] = e.repo
+	event["pid"] = pid
+	raw, err := sonic.ConfigStd.Marshal(event)
+	if err != nil {
+		e.t.Fatal(err)
+	}
+	out, code := e.runBin(string(raw), nil, "hook", "--agent", "opencode")
+	if code != 0 {
+		e.t.Fatalf("hook --agent opencode exit = %d, want 0", code)
+	}
+	return out
+}
+
+func wantOpenCode(t *testing.T, out, field, contains string) {
+	t.Helper()
+	var v map[string]string
+	if err := sonic.ConfigStd.Unmarshal([]byte(out), &v); err != nil {
+		t.Fatalf("Unmarshal(%q) err = %v, want a bridge answer", out, err)
+	}
+	if len(v) != 1 || !strings.Contains(v[field], contains) {
+		t.Fatalf("opencode hook output = %q, want only %q mentioning %q", out, field, contains)
+	}
+}
+
+func TestEndToEndOpenCode(t *testing.T) {
+	e := newE2E(t)
+	a, b := sleeper(t), sleeper(t)
+	pa, pb := a.Process.Pid, b.Process.Pid
+
+	// OpenCode session A claims a.go through a relative permission resource.
+	wantGrant(t, e.openCode("A", pa, map[string]any{"event": "prompt", "prompt": "refactor token refresh"}))
+	wantGrant(t, e.openCode("A", pa, map[string]any{"event": "permission", "action": "edit", "resources": []string{"a.go"}}))
+	e.write("a.go", "package x // A\n")
+
+	// Agents coordinate across adapters: Claude session B is refused A's file.
+	wantDeny(t, e.edit("B", pb, "a.go"), "opencode:A")
+
+	// Session C runs in a shared OpenCode service (pid 0): it hears about A,
+	// is refused a.go and a risky git segment, and may run plain git.
+	wantOpenCode(t, e.openCode("C", 0, map[string]any{"event": "prompt", "prompt": "fix flaky test"}), "context", "opencode:A")
+	wantOpenCode(t, e.openCode("C", 0, map[string]any{"event": "permission", "action": "edit", "resources": []string{"a.go"}}), "deny", "opencode:A")
+	wantOpenCode(t, e.openCode("C", 0, map[string]any{"event": "permission", "action": "shell", "resources": []string{"git status", "git stash"}}), "deny", "a.go")
+	wantGrant(t, e.openCode("C", 0, map[string]any{"event": "permission", "action": "shell", "resources": []string{"git status"}}))
+
+	// A's reported process dies: its claim lapses, so the daemon used the
+	// bridge pid and not the hook's parent (this test process, still alive).
+	_ = a.Process.Kill()
+	_ = a.Wait()
+	wantGrant(t, e.openCode("C", 0, map[string]any{"event": "permission", "action": "edit", "resources": []string{"a.go"}}))
+
+	// A session without a pid stays alive on its idle timeout; end drops it.
+	if st, _ := e.cli(nil, "status"); !strings.Contains(st, "opencode:C") {
+		t.Fatalf("status = %q, want it to list opencode:C", st)
+	}
+	wantGrant(t, e.openCode("C", 0, map[string]any{"event": "end"}))
+	if st, _ := e.cli(nil, "status"); strings.Contains(st, "opencode:") {
+		t.Fatalf("status after end = %q, want no opencode sessions", st)
+	}
+
+	// AGENT_QUORUM_NO_NOTES keeps prompts out of the daemon even though
+	// OpenCode registers with hello, not note.
+	raw := fmt.Sprintf(`{"event":"prompt","session_id":"D","directory":%q,"prompt":"secret plans"}`, e.repo)
+	if _, code := e.runBin(raw, []string{"AGENT_QUORUM_NO_NOTES=1"}, "hook", "--agent", "opencode"); code != 0 {
+		t.Fatalf("hook --agent opencode with NO_NOTES exit = %d, want 0", code)
+	}
+	if st, _ := e.cli(nil, "status"); !strings.Contains(st, "opencode:D") || strings.Contains(st, "secret plans") {
+		t.Fatalf("status with NO_NOTES = %q, want opencode:D listed without its prompt", st)
 	}
 }
 

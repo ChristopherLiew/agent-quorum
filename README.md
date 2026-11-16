@@ -6,7 +6,7 @@
 
 <p align="center">
   <b>Run several coding agents in one working tree without them overwriting each other.</b><br>
-  A plugin for Claude Code, Codex and Antigravity. Local, zero-config, fails open.
+  A plugin for Claude Code, Codex, Antigravity and OpenCode. Local, zero-config, fails open.
 </p>
 
 <p align="center">
@@ -55,14 +55,14 @@ The message is written for the model: it says who holds the file, rules out shel
 
 Sessions from different agents coordinate with each other: a Codex session is blocked from a file a Claude Code session holds, and the other way round.
 
-| | Claude Code | Codex | Antigravity |
-|---|:---:|:---:|:---:|
-| **File claims** | `Edit` `Write` `MultiEdit` `NotebookEdit` | `apply_patch` | `write_to_file` `replace_file_content` `multi_replace_file_content` `apply_patch` |
-| **Git guard** | `Bash` (git commands) | `Bash` | `run_command` |
-| **Told who else is here** | at session start | at session start | at session start and on every prompt |
-| **Session ends on** | `SessionEnd` | `SessionEnd` | `Stop` (the next prompt registers again) |
-| **Status in-agent** | `/agent-quorum:status` | terminal CLI | terminal CLI |
-| **Install from** | marketplace | marketplace | local checkout |
+| | Claude Code | Codex | Antigravity | OpenCode |
+|---|:---:|:---:|:---:|:---:|
+| **File claims** | `Edit` `Write` `MultiEdit` `NotebookEdit` | `apply_patch` | `write_to_file` `replace_file_content` `multi_replace_file_content` `apply_patch` | `edit` `write` `patch` (the `edit` permission) |
+| **Git guard** | `Bash` (git commands) | `Bash` | `run_command` | `shell` permission |
+| **Told who else is here** | at session start | at session start | at session start and on every prompt | at the first prompt |
+| **Session ends on** | `SessionEnd` | `SessionEnd` | `Stop` (the next prompt registers again) | process exit (`--standalone`) or 30 min idle (shared service) |
+| **Status in-agent** | `/agent-quorum:status` | terminal CLI | terminal CLI | terminal CLI |
+| **Install from** | marketplace | marketplace | local checkout | local checkout |
 
 ## Install
 
@@ -134,6 +134,37 @@ agy plugin install ./agent-quorum/plugin
 </details>
 
 <details>
+<summary><b>OpenCode</b></summary>
+
+&nbsp;
+
+OpenCode loads the plugin from a local checkout. It is one TypeScript file that OpenCode runs directly, with no build step and no dependencies:
+
+```bash
+git clone --branch stable https://github.com/ChristopherLiew/agent-quorum.git
+```
+
+Then add the plugin **directory** to `~/.config/opencode/opencode.json` (or a project's `opencode.json`), using the absolute path of your checkout. OpenCode rejects a path to the `.ts` file itself:
+
+```jsonc
+{
+  "$schema": "https://opencode.ai/config.json",
+  "plugins": ["/absolute/path/to/agent-quorum/plugin/opencode"]
+}
+```
+
+On first load the plugin downloads the matching binary in the background, so coordination starts with the next session.
+
+| Task | Command |
+|---|---|
+| Update | `git -C agent-quorum fetch origin stable && git -C agent-quorum reset --hard origin/stable` |
+| Uninstall | Remove the entry from `plugins` |
+
+By default OpenCode runs plugins in one shared background service that outlives your sessions, so agent-quorum cannot tell when an OpenCode session exits. Its files are released after 30 minutes without a prompt, edit or git command, or 120 seconds after they are committed or reverted. Runs started with `opencode run --standalone` are tracked by process and release immediately on exit.
+
+</details>
+
+<details>
 <summary><b>Release candidates</b></summary>
 
 &nbsp;
@@ -199,7 +230,7 @@ codex:3b80d4c2   pid 4310  idle 2m5s  /src/app  "add retry to the http client"
   <img src="assets/architecture.svg" alt="Claude Code, Codex and Antigravity call agent-quorum hook before edits and git commands. The hook sends one request over a Unix socket to the agent-quorum daemon, which tracks sessions and claims, guards git commands, checks git status and snapshots its state to state.json, and returns no opinion or a deny with a reason." width="820">
 </p>
 
-Each agent's native hooks run a short-lived `agent-quorum hook` process before an edit or a git command. It asks a small local daemon, shared by every session on your machine, whether the action is safe. The daemon starts by itself on the first hook and keeps its state in `~/.agent-quorum`.
+Each agent's native hooks run a short-lived `agent-quorum hook` process before an edit or a git command. OpenCode, whose plugins must be JavaScript or TypeScript, gets a thin shim that forwards its hook events to the same process. That process asks a small local daemon, shared by every session on your machine, whether the action is safe. The daemon starts by itself on the first hook and keeps its state in `~/.agent-quorum`.
 
 A typical contention, end to end:
 
@@ -240,6 +271,7 @@ sequenceDiagram
 agent-quorum coordinates cooperating agents and is not a security boundary.
 
 - Shell writes such as `sed -i` or `>` redirection are not intercepted, and file claims cover only the tools in the [table above](#supported-agents).
+- An OpenCode session in the shared background service holds its files for at most 30 minutes after its last prompt, edit or git command, because the service outlives the session. Other shell commands, such as a long test run, do not count as activity.
 - Edits you make in your own editor are not seen.
 - It works on one machine for one user.
 - If every agent already has its own git worktree or clone, you do not need it.
@@ -253,6 +285,7 @@ agent-quorum coordinates cooperating agents and is not a security boundary.
 | A file is still held just after it was committed | Expected for 120 seconds. Wait, or release it by hand. |
 | Why was something denied? | `~/.agent-quorum/daemon.log` records every deny with the session and reason. |
 | Did the hooks run? (Claude Code) | Start with `claude --debug-file /tmp/cc.log` and search for lines starting `Hooks:`. |
+| Did the hooks run? (OpenCode) | Run `AGENT_QUORUM_CAPTURE=/tmp/aq.jsonl opencode run --standalone "..."`; every event the plugin forwards is appended to that file. A shared background service only sees variables it was started with. |
 | Odd behaviour after an upgrade | `agent-quorum stop`. The next hook starts the new version. |
 
 Still stuck? [Open an issue](https://github.com/ChristopherLiew/agent-quorum/issues) with your OS, agent and version, and the relevant lines from `daemon.log`.

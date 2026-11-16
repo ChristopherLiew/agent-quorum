@@ -1,0 +1,1 @@
+{"event":"permission","session_id":"ses_root01","directory":"/home/user/my-project","action":"shell","resources":["cd sub","git stash"]}

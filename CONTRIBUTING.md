@@ -12,6 +12,7 @@ Thanks for helping. This file covers the dev loop, the rules the code lives by, 
 - the `claude` CLI, for `make validate-plugin` and for trying the plugin by hand
 - the `codex` CLI, for installing and checking the Codex marketplace package locally
 - the `agy` CLI, for validating the Antigravity plugin (`make validate-antigravity-plugin`)
+- `bun` (optional locally): `make lint` parse-checks the OpenCode plugin with it; the `opencode` CLI for trying that plugin by hand
 - `git`, `curl`, `tar`
 - macOS or Linux
 
@@ -30,7 +31,7 @@ Every make target:
 | `make build` | Builds `./bin/agent-quorum`, version stamped as `<plugin.json version>-dev`. |
 | `make test` | `go test -race -count=1 ./...` |
 | `make vet` | `go vet ./...` plus a gofmt check that fails on unformatted files. |
-| `make lint` | `sh -n` and shellcheck on `plugin/scripts/*.sh` and `scripts/*.sh`, and `jq empty` on the marketplace, plugin and hooks JSON. |
+| `make lint` | `sh -n` and shellcheck on `plugin/scripts/*.sh` and `scripts/*.sh`, `jq empty` on the marketplace, plugin and hooks JSON, and a `bun build --no-bundle` parse check of `plugin/opencode/index.ts` (skipped without `bun`). |
 | `make check` | `vet`, `lint`, `test`. |
 | `make validate-plugin` | Validates the Claude plugin and marketplace, then discovers and installs the Codex plugin in a temporary `CODEX_HOME`. Needs the `claude`, `codex` and `jq` CLIs. |
 | `make validate-antigravity-plugin` | Runs `agy plugin validate ./plugin`. Needs the Antigravity CLI (`agy`); Antigravity reports the separate Claude hook config as an expected ignored-file warning. |
@@ -65,13 +66,16 @@ internal/guard/             Classify(command) Risk. Pure.
 internal/adapter/claude/    Parse and Render for Claude Code hook JSON. Pure.
 internal/adapter/codex/     Parse and Render for Codex hook JSON. Pure.
 internal/adapter/antigravity/ Parse and Render for Antigravity hook JSON. Pure.
+internal/adapter/opencode/  Parse and Render for the OpenCode plugin's bridge events. Pure.
 internal/daemon/            socket server, flock, snapshot, the real core.Env
 internal/client/            dial, start-on-demand, deadlines, path normalisation
 internal/gitx/              thin wrappers over the git CLI
 plugin/                     Claude Code, Codex and Antigravity manifests, hooks, scripts/*.sh, skills/status
+plugin/opencode/index.ts    OpenCode plugin: a thin TypeScript shim that forwards bridge events to `hook --agent opencode`
 scripts/                    release-build.sh, bump-version.sh
 testdata/hooks/claude/      Claude Code hook payload fixtures
 testdata/hooks/antigravity/ Antigravity hook payload fixtures
+testdata/hooks/opencode/    OpenCode bridge-event fixtures
 .claude-plugin/             marketplace.json: the repo root is a marketplace for Claude Code and Codex
 ```
 
