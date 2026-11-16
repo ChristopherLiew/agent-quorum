@@ -17,6 +17,7 @@ export type Snap = { daemon: boolean; sessions: Holder[]; error: string }
 
 declare module 'claude-code' {
   interface PluginState {
-    'agent-quorum-dashboard': { snap: Shaped<Snap>; selected: string }
+    // expanded: the sessions whose file tree is open.
+    'agent-quorum': { snap: Shaped<Snap>; selected: string; expanded: string[] }
   }
 }

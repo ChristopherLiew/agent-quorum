@@ -20,6 +20,7 @@
 <p align="center">
   <a href="#install">Install</a> ·
   <a href="#use">Use</a> ·
+  <a href="#dashboard">Dashboard</a> ·
   <a href="#how-it-works">How it works</a> ·
   <a href="#safety-and-privacy">Safety</a> ·
   <a href="#troubleshooting">Troubleshooting</a> ·
@@ -88,13 +89,7 @@ Start a new session, then run `/agent-quorum:status` to check it is working.
 
 Third-party marketplaces do not auto-update by default. Turn it on under `/plugin`, or run the update command.
 
-**Optional dashboard.** A second plugin in the same marketplace adds a `/quorum` pane: an htop-style table of every live session and the files each one holds. It needs a Claude Code build with mods (hooks modules) support.
-
-```bash
-claude plugin install agent-quorum-dashboard@agent-quorum-tools
-```
-
-Open it with `/quorum`. Keys: `j`/`k` move, `r` releases the selected session's files, `c` copies its id, `esc` closes.
+The plugin also adds the [dashboard](#dashboard), `/quorum-dashboard`.
 
 </details>
 
@@ -231,6 +226,36 @@ codex:3b80d4c2   pid 4310  idle 2m5s  /src/app  "add retry to the http client"
 
 > [!TIP]
 > Tell your agents to stage files by explicit path (`git add src/auth.go`) and to avoid `git add -A`, `commit -a`, `stash` and `checkout`. agent-quorum enforces this, but agents that already work this way are blocked less often.
+
+## Dashboard
+
+<p align="center">
+  <img src="assets/dashboard.gif" alt="The agent-quorum dashboard in Claude Code: an htop-style table of live Claude Code, Codex and OpenCode sessions with their idle time, held files and last prompt. The selected row is marked and highlighted, and one session is expanded to show its files as a tree." width="820">
+</p>
+
+The Claude Code plugin includes a dashboard that puts every agent session on your machine into one live, htop-style table inside Claude Code.
+
+| Feature | What you get |
+|---|---|
+| Live view | Every Claude Code, Codex, OpenCode and Antigravity session, refreshed every 2 seconds while the pane is open. |
+| At a glance | The process, agent, idle time, number of held files, repository and latest prompt for each session. Your own session is marked `*`. |
+| Colour | Each agent has its own colour, and idle time goes from green to amber (past 10 minutes) to red (past 30). |
+| Keyboard selection | `↑`/`↓` move a `▶` marker and highlight bar through the sessions. |
+| File tree | `Enter` expands a session into the files it holds, drawn as a directory tree. |
+| Actions | `r` releases a session's leftover claims after a confirmation, and `c` copies its id. |
+| Safe by design | It only reads `agent-quorum status` and runs `release`. It is never in the hook path, so the guard works the same whether or not the dashboard is open, or supported by your Claude Code version. |
+
+It comes with the `agent-quorum` plugin; there is nothing else to install. It needs a Claude Code version that supports mods (hooks modules). Older versions skip it and keep the guard. In any Claude Code session, run `/quorum-dashboard`.
+
+| Key | Action |
+|---|---|
+| `↑` / `↓` | Select the previous or next session. |
+| `Enter` | Show or hide the selected session's files. |
+| `r` | Release every file the selected session holds. The session takes a file back on its next edit, so use this for claims left behind, not to take a file from an active agent. |
+| `c` | Copy the selected session's id, for `agent-quorum release --session ID`. |
+| `esc` | Close the pane. |
+
+If the pane shows `daemon down`, no agent session has started the daemon yet. An error line usually means the `agent-quorum` binary was not found: start a session with the main plugin installed, or set `AGENT_QUORUM_BIN`.
 
 ## How it works
 
