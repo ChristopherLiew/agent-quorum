@@ -8,6 +8,7 @@ Thanks for helping. This file covers the dev loop, the rules the code lives by, 
 - `jq` (used by `make lint`, `make release` and the version stamp)
 - the `gh` CLI, for `make release` to open the release pull request
 - `shellcheck` (optional locally, enforced in CI)
+- `golangci-lint` v2 (optional locally, enforced in CI; config in `.golangci.yml`)
 - the `claude` CLI, for `make validate-plugin` and for trying the plugin by hand
 - the `codex` CLI, for installing and checking the Codex marketplace package locally
 - the `agy` CLI, for validating the Antigravity plugin (`make validate-antigravity-plugin`)
@@ -17,7 +18,8 @@ Thanks for helping. This file covers the dev loop, the rules the code lives by, 
 ## Dev loop
 
 ```bash
-make check      # vet + lint + test: exactly what CI runs
+make check      # vet + lint + test: what CI runs, minus golangci-lint
+golangci-lint run  # the CI golangci job (v2.15.0)
 make dev        # build, then start Claude Code with the local plugin and local binary
 ```
 
@@ -112,7 +114,7 @@ Do not break these. Review will check each one.
 2. **Commit** with short imperative subjects, one logical change per commit: `fix: allow git stash list`, `feat: add status --json`.
 3. **Run `make check` locally**, and `make validate-plugin` if you touched `plugin/` or the marketplace manifest.
 4. **Open a pull request against `main`.** Describe the behaviour change and how you tested it. Call out any change to a public surface (see [Versioning](#versioning)), because it decides the next version bump.
-5. **CI must be green** (`test` on Ubuntu and macOS, `lint`, `plugin`) and the pull request needs an approving review before it can merge.
+5. **CI must be green** (`test` on Ubuntu and macOS, `golangci`, `lint`, `plugin`) and the pull request needs an approving review before it can merge.
 6. **Squash-merge**, then delete the branch. The squash subject becomes the line in the generated release notes, so make it read well.
 
 Rules:
@@ -200,6 +202,7 @@ Two workflows in `.github/workflows/`.
 | Job | What it checks |
 |---|---|
 | `test` (Ubuntu and macOS) | `make vet`, `make test` (race detector), `make build` |
+| `golangci` | `golangci-lint run` (v2.15.0) with `.golangci.yml`: the standard linters plus `revive`, golint's successor |
 | `lint` | `make lint` (shellcheck, `sh -n`, JSON syntax), and that the launcher fails open when no binary exists |
 | `plugin` | `make validate-plugin`: validates the Claude plugin and marketplace, then installs the Codex plugin in a temporary Codex home |
 
@@ -251,7 +254,7 @@ Run this before every tag. Do not skip steps because the change is small.
 
 1. **Start from a clean, up-to-date `main` with CI green.** `git status` is clean, `git pull` is done, and the latest CI run on that commit passed on Ubuntu and macOS.
 2. **Decide the version** (`x.y.z`, or `x.y.z-rc.N` for a candidate) from the versioning rules above, by reading the changes since the last tag (`git log <last-tag>..HEAD`). Look for anything touching the public API.
-3. **`make check`.** vet, lint and race tests must pass locally. Install `shellcheck` so lint is not skipped.
+3. **`make check`.** vet, lint and race tests must pass locally. Install `shellcheck` so lint is not skipped, and run `golangci-lint run`.
 4. **`make validate-plugin`.** Strict validation of the plugin and of the marketplace root.
 5. **`make snapshot`, then inspect `dist/`.** There must be exactly four archives (`darwin` and `linux`, `amd64` and `arm64`) and `checksums.txt`. Verify the checksums (`shasum -a 256 -c checksums.txt` inside `dist/`), unpack the archive for your platform and run `agent-quorum version`.
 6. **End-to-end by hand with two real sessions** on the current Claude Code version, using `make dev`, a scratch repository and a scratch `AGENT_QUORUM_HOME`:

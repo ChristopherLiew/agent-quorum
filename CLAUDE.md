@@ -15,7 +15,7 @@ agent-quorum is local coordination for concurrent coding-agent sessions that sha
 | Command | What it does |
 |---|---|
 | `make build` | Build `./bin/agent-quorum` (version from `plugin.json` + `-dev`) |
-| `make check` | `vet` + `lint` + `test`. What CI runs. |
+| `make check` | `vet` + `lint` + `test`. What CI runs, except the `golangci` job (`golangci-lint run`, v2, config in `.golangci.yml`). |
 | `make test` | `go test -race -count=1 ./...` |
 | `make vet` | `go vet` plus a gofmt check that fails on unformatted files |
 | `make lint` | `sh -n` and shellcheck (optional locally, enforced in CI) on all scripts; `jq` on the plugin JSON |

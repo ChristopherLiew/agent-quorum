@@ -63,7 +63,10 @@ func TestDoAgainstRealDaemon(t *testing.T) {
 	t.Cleanup(func() {
 		cancel()
 		select {
-		case <-done:
+		case err := <-done:
+			if err != nil {
+				t.Errorf("daemon.Serve() = %v, want nil", err)
+			}
 		case <-time.After(5 * time.Second):
 			t.Error("daemon stopped within 5s = false, want true")
 		}

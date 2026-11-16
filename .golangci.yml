@@ -1,0 +1,8 @@
+version: "2"
+
+linters:
+  enable:
+    - revive # golint's successor: doc comments, naming, error strings
+  exclusions:
+    presets:
+      - std-error-handling # unchecked Close, os.Remove, fmt.Fprint*
