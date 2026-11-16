@@ -155,11 +155,7 @@ func Serve(ctx context.Context, o Options) error {
 			}
 			continue
 		}
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			s.serveConn(conn)
-		}()
+		wg.Go(func() { s.serveConn(conn) })
 	}
 
 	drained := make(chan struct{})
