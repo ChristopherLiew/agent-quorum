@@ -1,6 +1,6 @@
 {
   "name": "agent-quorum",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Stops concurrent agent sessions on one machine from editing the same files or clobbering each other's git state",
   "author": {
     "name": "ImmutablyChris",
