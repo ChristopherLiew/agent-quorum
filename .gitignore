@@ -61,3 +61,6 @@ Thumbs.db
 
 # --- Project ---
 docs/
+# types Claude Code lays into the plugin when it loads the dashboard mod
+/plugin/.claude-plugin/types/
+/plugin/tsconfig.json

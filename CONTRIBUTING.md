@@ -33,7 +33,7 @@ Every make target:
 | `make vet` | `go vet ./...` plus a gofmt check that fails on unformatted files. |
 | `make lint` | `sh -n` and shellcheck on `plugin/scripts/*.sh` and `scripts/*.sh`, `jq empty` on the marketplace, plugin and hooks JSON, and a `bun build --no-bundle` parse check of `plugin/opencode/index.ts` (skipped without `bun`). |
 | `make check` | `vet`, `lint`, `test`. |
-| `make validate-plugin` | Validates the Claude plugin and marketplace, then discovers and installs the Codex plugin in a temporary `CODEX_HOME`. Needs the `claude`, `codex` and `jq` CLIs. |
+| `make validate-plugin` | Validates the Claude plugin and marketplace and runs the dashboard mod's tests (`claude plugin test ./plugin`), then discovers and installs the Codex plugin in a temporary `CODEX_HOME`. Needs the `claude`, `codex` and `jq` CLIs. |
 | `make validate-antigravity-plugin` | Runs `agy plugin validate ./plugin`. Needs the Antigravity CLI (`agy`); Antigravity reports the separate Claude hook config as an expected ignored-file warning. |
 | `make snapshot` | Cross-compiles the four release archives (darwin and linux, amd64 and arm64) and `checksums.txt` into `./dist`. |
 | `make dev` | `make build`, then `AGENT_QUORUM_BIN=$PWD/bin/agent-quorum claude --plugin-dir ./plugin`. |
@@ -208,7 +208,7 @@ Two workflows in `.github/workflows/`.
 | `test` (Ubuntu and macOS) | `make vet`, `make test` (race detector), `make build` |
 | `golangci` | `golangci-lint run` (v2.15.0) with `.golangci.yml`: the standard linters plus `revive`, golint's successor |
 | `lint` | `make lint` (shellcheck, `sh -n`, JSON syntax), and that the launcher fails open when no binary exists |
-| `plugin` | `make validate-plugin`: validates the Claude plugin and marketplace, then installs the Codex plugin in a temporary Codex home |
+| `plugin` | `make validate-plugin`: validates the Claude plugin and marketplace, runs the dashboard mod's tests, then installs the Codex plugin in a temporary Codex home |
 
 **`release.yml`** publishes a release. It runs when a push to `main` changes `plugin/.claude-plugin/plugin.json`, which in practice means when a release pull request is merged. If the version in the manifest has no tag yet, it tags the merge commit and publishes; if the tag already exists it does nothing. Releases are serialised and never cancelled halfway. (Pushing a `v*` tag by hand also triggers it, as a fallback.)
 
@@ -259,7 +259,7 @@ Run this before every tag. Do not skip steps because the change is small.
 1. **Start from a clean, up-to-date `main` with CI green.** `git status` is clean, `git pull` is done, and the latest CI run on that commit passed on Ubuntu and macOS.
 2. **Decide the version** (`x.y.z`, or `x.y.z-rc.N` for a candidate) from the versioning rules above, by reading the changes since the last tag (`git log <last-tag>..HEAD`). Look for anything touching the public API.
 3. **`make check`.** vet, lint and race tests must pass locally. Install `shellcheck` so lint is not skipped, and run `golangci-lint run`.
-4. **`make validate-plugin`.** Strict validation of the plugin and of the marketplace root.
+4. **`make validate-plugin`.** Strict validation of the plugin and of the marketplace root, and the dashboard mod's tests.
 5. **`make snapshot`, then inspect `dist/`.** There must be exactly four archives (`darwin` and `linux`, `amd64` and `arm64`) and `checksums.txt`. Verify the checksums (`shasum -a 256 -c checksums.txt` inside `dist/`), unpack the archive for your platform and run `agent-quorum version`.
 6. **End-to-end by hand with two real sessions** on the current Claude Code version, using `make dev`, a scratch repository and a scratch `AGENT_QUORUM_HOME`:
    - Edit conflict: session A edits a file, session B's edit to it is denied with the holder named.

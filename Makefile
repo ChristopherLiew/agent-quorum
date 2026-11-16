@@ -22,6 +22,7 @@ lint:             ## shell + JSON checks (shellcheck is optional locally, requir
 
 validate-plugin:  ## needs the claude and codex CLIs
 	claude plugin validate ./plugin --strict
+	claude plugin test ./plugin
 	claude plugin validate .
 	scripts/validate-codex-plugin.sh
 
