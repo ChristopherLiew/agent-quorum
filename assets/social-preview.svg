@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 640" width="1280" height="640" role="img" aria-label="agent-quorum: run several coding agents in one working tree without them overwriting each other">
+  <style>
+    text { font-family: "Geist", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; }
+    .mono { font-family: "Geist Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+  </style>
+  <defs>
+    <radialGradient id="lift" cx="0.3" cy="0" r="0.9">
+      <stop offset="0" stop-color="#27272a" stop-opacity="0.9"/>
+      <stop offset="1" stop-color="#09090b" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="fade" cx="0.5" cy="0.5" r="0.6">
+      <stop offset="0" stop-color="#fff" stop-opacity="1"/>
+      <stop offset="1" stop-color="#fff" stop-opacity="0"/>
+    </radialGradient>
+    <mask id="gridmask"><rect width="1280" height="640" fill="url(#fade)"/></mask>
+    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M40 0 H0 V40" fill="none" stroke="#27272a" stroke-width="1.5"/>
+    </pattern>
+  </defs>
+
+  <rect width="1280" height="640" fill="#09090b"/>
+  <rect width="1280" height="640" fill="url(#grid)" mask="url(#gridmask)" opacity="0.7"/>
+  <rect width="1280" height="640" fill="url(#lift)"/>
+
+  <!-- mark: logo.svg scaled to 0.44, centred at (300, 320) -->
+  <g transform="translate(300 320) scale(0.44) translate(-512 -512)">
+    <g stroke="#3f3f46" stroke-width="30" stroke-linecap="round">
+      <line x1="512" y1="267" x2="300" y2="634"/>
+      <line x1="512" y1="267" x2="724" y2="634"/>
+      <line x1="300" y1="634" x2="724" y2="634"/>
+    </g>
+    <circle cx="512" cy="267" r="74" fill="#fafafa"/>
+    <circle cx="300" cy="634" r="74" fill="#fafafa"/>
+    <circle cx="724" cy="634" r="58" fill="#09090b" stroke="#71717a" stroke-width="32"/>
+    <path d="M448 516 L494 562 L578 468" fill="none" stroke="#fafafa" stroke-width="40" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+
+  <text x="520" y="292" font-size="76" font-weight="700" fill="#fafafa" letter-spacing="-2">agent-quorum</text>
+  <text x="522" y="346" font-size="28" fill="#a1a1aa">Run several coding agents in one working tree</text>
+  <text x="522" y="384" font-size="28" fill="#a1a1aa">without them overwriting each other.</text>
+
+  <g class="mono" font-size="19" fill="#d4d4d8">
+    <rect x="522" y="420" width="148" height="38" rx="8" fill="#18181b" stroke="#27272a" stroke-width="1.5"/>
+    <text x="596" y="445" text-anchor="middle">Claude Code</text>
+    <rect x="682" y="420" width="92" height="38" rx="8" fill="#18181b" stroke="#27272a" stroke-width="1.5"/>
+    <text x="728" y="445" text-anchor="middle">Codex</text>
+    <rect x="786" y="420" width="150" height="38" rx="8" fill="#18181b" stroke="#27272a" stroke-width="1.5"/>
+    <text x="861" y="445" text-anchor="middle">Antigravity</text>
+  </g>
+</svg>

@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024" role="img" aria-label="agent-quorum logo: three connected nodes, two filled, with a check mark">
+  <defs>
+    <radialGradient id="lift" cx="0.5" cy="0" r="0.9">
+      <stop offset="0" stop-color="#27272a" stop-opacity="0.9"/>
+      <stop offset="1" stop-color="#09090b" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="fade" cx="0.5" cy="0.5" r="0.55">
+      <stop offset="0" stop-color="#fff" stop-opacity="1"/>
+      <stop offset="1" stop-color="#fff" stop-opacity="0"/>
+    </radialGradient>
+    <mask id="gridmask"><rect width="1024" height="1024" fill="url(#fade)"/></mask>
+    <pattern id="grid" width="64" height="64" patternUnits="userSpaceOnUse">
+      <path d="M64 0 H0 V64" fill="none" stroke="#27272a" stroke-width="2"/>
+    </pattern>
+  </defs>
+
+  <rect width="1024" height="1024" fill="#09090b"/>
+  <rect width="1024" height="1024" fill="url(#grid)" mask="url(#gridmask)" opacity="0.7"/>
+  <rect width="1024" height="1024" fill="url(#lift)"/>
+
+  <!-- edges -->
+  <g stroke="#3f3f46" stroke-width="30" stroke-linecap="round">
+    <line x1="512" y1="267" x2="300" y2="634"/>
+    <line x1="512" y1="267" x2="724" y2="634"/>
+    <line x1="300" y1="634" x2="724" y2="634"/>
+  </g>
+
+  <!-- nodes: two of three agree -->
+  <circle cx="512" cy="267" r="74" fill="#fafafa"/>
+  <circle cx="300" cy="634" r="74" fill="#fafafa"/>
+  <circle cx="724" cy="634" r="58" fill="#09090b" stroke="#71717a" stroke-width="32"/>
+
+  <!-- quorum reached -->
+  <path d="M448 516 L494 562 L578 468" fill="none" stroke="#fafafa" stroke-width="40" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
